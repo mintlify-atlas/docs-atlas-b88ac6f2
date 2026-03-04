@@ -1,0 +1,93 @@
+{
+  "projectType": "api-service",
+  "projectName": "Sistema de Productos",
+  "projectDescription": "RESTful API for product management with Vue.js frontend, built with Express and PostgreSQL",
+  "theme": "mint",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/authentication",
+              "concepts/database-schema"
+            ]
+          },
+          {
+            "group": "Frontend Guide",
+            "pages": [
+              "frontend/overview",
+              "frontend/components",
+              "frontend/state-management"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/configuration",
+              "guides/deployment",
+              "guides/security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/products",
+              "api/categories",
+              "api/users"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "JWT-based authentication with HTTP-only cookies",
+    "Role-based access control (RBAC)",
+    "RESTful API for products, categories, and users",
+    "PostgreSQL database with views and triggers",
+    "Vue.js 3 frontend with Pinia state management",
+    "Password recovery via email"
+  ],
+  "publicApiSurface": [
+    "POST /api-productos/usuarios/login",
+    "POST /api-productos/usuarios/logout",
+    "POST /api-productos/usuarios/recuperar-contrasena",
+    "GET /api-productos/productos",
+    "POST /api-productos/productos",
+    "GET /api-productos/productos/:id",
+    "PUT /api-productos/productos/:id",
+    "DELETE /api-productos/productos/:id",
+    "GET /api-productos/categorias",
+    "POST /api-productos/categorias",
+    "GET /api-productos/categorias/:id",
+    "PUT /api-productos/categorias/:id",
+    "DELETE /api-productos/categorias/:id",
+    "GET /api-productos/usuarios",
+    "POST /api-productos/usuarios",
+    "GET /api-productos/usuarios/:id",
+    "PUT /api-productos/usuarios/:id",
+    "DELETE /api-productos/usuarios/:id"
+  ]
+}
