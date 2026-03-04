@@ -1,0 +1,784 @@
+---
+title: Installation
+description: Comprehensive installation guide for Sistema de Productos including prerequisites, setup, and troubleshooting
+---
+
+# Installation Guide
+
+This guide provides detailed instructions for installing and configuring Sistema de Productos on your system. Follow these steps for a complete setup from prerequisites through production deployment.
+
+## Prerequisites
+
+Before installing Sistema de Productos, ensure your system meets these requirements:
+
+### Node.js
+
+**Required Version**: Node.js 18.x or higher (tested with v24.13.1)
+
+<Steps>
+  <Step title="Check Current Version">
+    Verify your Node.js installation:
+
+    ```bash
+    node --version
+    ```
+
+    If the version is below 18.x or Node.js is not installed, proceed to the next step.
+  </Step>
+
+  <Step title="Install Node.js">
+    Download and install Node.js from [nodejs.org](https://nodejs.org/)
+
+    <CodeGroup>
+    ```bash macOS (Homebrew)
+    brew install node
+    ```
+
+    ```bash Ubuntu/Debian
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    ```
+
+    ```bash Windows (Chocolatey)
+    choco install nodejs
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Verify Installation">
+    Confirm Node.js and npm are installed:
+
+    ```bash
+    node --version
+    npm --version
+    ```
+  </Step>
+</Steps>
+
+### PostgreSQL
+
+**Required Version**: PostgreSQL 12.x or higher
+
+<Steps>
+  <Step title="Install PostgreSQL">
+    <CodeGroup>
+    ```bash macOS (Homebrew)
+    brew install postgresql@15
+    brew services start postgresql@15
+    ```
+
+    ```bash Ubuntu/Debian
+    sudo apt update
+    sudo apt install postgresql postgresql-contrib
+    sudo systemctl start postgresql
+    sudo systemctl enable postgresql
+    ```
+
+    ```bash Windows
+    # Download installer from postgresql.org
+    # Or use Chocolatey:
+    choco install postgresql
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Verify PostgreSQL is Running">
+    ```bash
+    # Check if PostgreSQL is running
+    pg_isready
+    
+    # Expected output:
+    # /var/run/postgresql:5432 - accepting connections
+    ```
+  </Step>
+
+  <Step title="Set PostgreSQL Password">
+    ```bash
+    # Connect to PostgreSQL
+    sudo -u postgres psql
+    ```
+
+    ```sql
+    -- Set password for postgres user
+    ALTER USER postgres PASSWORD 'your_secure_password';
+    
+    -- Exit psql
+    \q
+    ```
+  </Step>
+</Steps>
+
+### Git (Optional)
+
+**Required for**: Cloning the repository
+
+```bash
+# Verify Git installation
+git --version
+
+# Install if needed
+# macOS (Homebrew)
+brew install git
+
+# Ubuntu/Debian
+sudo apt install git
+
+# Windows (Chocolatey)
+choco install git
+```
+
+## Installation Steps
+
+### 1. Download the Project
+
+<CodeGroup>
+```bash Clone with Git
+git clone <repository-url>
+cd proyectico-vue-express
+```
+
+```bash Download ZIP
+# Download and extract the ZIP file
+# Navigate to the extracted directory
+cd proyectico-vue-express
+```
+</CodeGroup>
+
+### 2. Install Dependencies
+
+Install all required npm packages:
+
+```bash
+npm install
+```
+
+This will install the following key dependencies:
+
+#### Frontend Dependencies
+- `vue@3.5.18` - Progressive JavaScript framework
+- `vue-router@4.5.1` - Official router for Vue.js
+- `pinia@3.0.3` - State management library
+- `axios@1.13.2` - HTTP client for API requests
+- `tailwindcss@4.1.11` - Utility-first CSS framework
+
+#### Backend Dependencies
+- `express@5.1.0` - Web application framework
+- `pg@8.16.3` - PostgreSQL client for Node.js
+- `jsonwebtoken@9.0.2` - JWT authentication
+- `bcrypt@6.0.0` - Password hashing
+- `cors@2.8.5` - Cross-origin resource sharing
+- `cookie-parser@1.4.7` - Cookie parsing middleware
+- `nodemailer@7.0.11` - Email sending functionality
+
+#### Development Dependencies
+- `vite@7.1.0` - Frontend build tool
+- `nodemon@3.1.10` - Auto-restart for backend development
+- `concurrently@9.2.0` - Run multiple commands simultaneously
+- `dotenv@17.2.1` - Environment variable management
+
+<Accordion title="Troubleshooting npm install">
+  If you encounter issues during installation:
+
+  **Error: EACCES permission denied**
+  ```bash
+  # Fix npm permissions (Linux/macOS)
+  sudo chown -R $(whoami) ~/.npm
+  sudo chown -R $(whoami) /usr/local/lib/node_modules
+  ```
+
+  **Error: node-gyp build failed**
+  ```bash
+  # Install build tools
+  # Ubuntu/Debian
+  sudo apt-get install build-essential
+  
+  # macOS
+  xcode-select --install
+  
+  # Windows
+  npm install --global windows-build-tools
+  ```
+
+  **Network or timeout errors**
+  ```bash
+  # Clear npm cache
+  npm cache clean --force
+  
+  # Try with different registry
+  npm install --registry=https://registry.npmjs.org/
+  ```
+</Accordion>
+
+### 3. Database Setup
+
+<Steps>
+  <Step title="Create Database">
+    Connect to PostgreSQL and create the database:
+
+    ```bash
+    # Connect to PostgreSQL
+    psql -U postgres
+    ```
+
+    ```sql
+    -- Create the database
+    CREATE DATABASE ejercicio_productos;
+    
+    -- Verify database was created
+    \l
+    
+    -- Exit psql
+    \q
+    ```
+  </Step>
+
+  <Step title="Run Schema Script">
+    Execute the database schema file to create tables, views, and sample data:
+
+    ```bash
+    psql -U postgres -d ejercicio_productos -f server/config/bd.sql
+    ```
+
+    This creates:
+    - **3 Tables**: Categorias, Productos, Usuarios
+    - **3 Views**: ProductosView, CategoriasView, UsuariosView
+    - **Extension**: pgcrypto for password encryption
+    - **Sample Data**: 4 categories and 19 products
+    - **Admin User**: Default administrator account
+  </Step>
+
+  <Step title="Verify Database Setup">
+    Confirm tables were created successfully:
+
+    ```bash
+    psql -U postgres -d ejercicio_productos
+    ```
+
+    ```sql
+    -- List all tables
+    \dt
+    
+    -- Should show: categorias, productos, usuarios
+    
+    -- Check sample data
+    SELECT COUNT(*) FROM Categorias;
+    SELECT COUNT(*) FROM Productos;
+    SELECT COUNT(*) FROM Usuarios;
+    
+    -- Exit
+    \q
+    ```
+
+    Expected counts:
+    - Categorias: 4 rows
+    - Productos: 19 rows
+    - Usuarios: 1 row (admin user)
+  </Step>
+</Steps>
+
+<Accordion title="Database Schema Details">
+  The database includes the following structure:
+
+  **Tables**:
+  ```sql
+  -- Categories with visual properties
+  CREATE TABLE Categorias (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    icono VARCHAR(50) NOT NULL,
+    color VARCHAR(50) NOT NULL,
+    descripcion TEXT,
+    creado TIMESTAMP NOT NULL,
+    actualizado TIMESTAMP 
+  );
+
+  -- Products with pricing and inventory
+  CREATE TABLE Productos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    precio DECIMAL(10, 2) NOT NULL,
+    stock INT NOT NULL DEFAULT(0),
+    descripcion TEXT,
+    creado TIMESTAMP NOT NULL,
+    actualizado TIMESTAMP,
+    idCategoria INT REFERENCES Categorias(id) NOT NULL
+  );
+
+  -- Users with role-based access
+  CREATE TABLE Usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(20) NOT NULL UNIQUE,
+    contrasena TEXT NOT NULL,
+    correo VARCHAR(50) NOT NULL,
+    rol VARCHAR(20) NOT NULL,
+    creado TIMESTAMP NOT NULL,
+    actualizado TIMESTAMP
+  );
+  ```
+
+  **Views** provide formatted date/time fields for easier frontend consumption.
+</Accordion>
+
+### 4. Environment Configuration
+
+Create and configure the environment variables file:
+
+<Steps>
+  <Step title="Create .env File">
+    ```bash
+    touch .env
+    ```
+  </Step>
+
+  <Step title="Add Configuration">
+    Open `.env` in your text editor and add the following:
+
+    ```bash
+    # ===================
+    # Server Configuration
+    # ===================
+    PORT=3000
+
+    # ===================
+    # PostgreSQL Database
+    # ===================
+    PG_USER=postgres
+    PG_HOST=localhost
+    PG_DATABASE=ejercicio_productos
+    PG_PASSWORD=your_postgres_password_here
+    PG_PORT=5432
+
+    # ===================
+    # JWT Authentication
+    # ===================
+    # Generate a secure random string (see below)
+    JWT_SECRET=your_jwt_secret_key_here
+
+    # ===================
+    # Email Configuration
+    # ===================
+    # Optional: for nodemailer functionality
+    EMAIL_USER=your_email@example.com
+    EMAIL_PASSWORD=your_email_app_password
+    ```
+  </Step>
+
+  <Step title="Generate Secure JWT Secret">
+    Create a cryptographically secure JWT secret:
+
+    ```bash
+    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+    ```
+
+    Copy the output and replace `your_jwt_secret_key_here` in your `.env` file.
+  </Step>
+
+  <Step title="Verify Configuration">
+    Ensure all required variables are set:
+
+    ```bash
+    # Check .env file exists and has content
+    cat .env
+    ```
+
+    <Warning>
+      Never commit `.env` to version control. The file is already listed in `.gitignore`.
+    </Warning>
+  </Step>
+</Steps>
+
+### 5. Start the Application
+
+Run the development servers:
+
+```bash
+npm run dev
+```
+
+This command starts:
+- **Frontend (Vite)**: http://localhost:5173
+- **Backend (Express)**: http://localhost:3000
+
+Expected console output:
+```
+[0] 
+[0]   VITE v7.1.0  ready in 450 ms
+[0] 
+[0]   ➜  Local:   http://localhost:5173/
+[0]   ➜  Network: http://192.168.1.x:5173/
+[1] API funcionando en el puerto 3000.
+[1] Base de datos conectada.
+```
+
+## Configuration Details
+
+### Backend Server Configuration
+
+The backend is configured in `server/index.js` and `server/app.js`:
+
+```javascript
+// server/index.js
+import app from './app.js';
+import 'dotenv/config';
+
+const port = process.env.PORT;
+
+app.listen(port, () => {
+  console.log(`API funcionando en el puerto ${port}.`);
+});
+```
+
+```javascript
+// server/app.js
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import router from './routes/index.js';
+
+const app = express();
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(cookieParser());
+app.use('/api-productos', router);
+
+export default app;
+```
+
+### Database Connection Configuration
+
+Database connection is managed in `server/config/database.js`:
+
+```javascript
+import { Pool } from 'pg';
+import 'dotenv/config';
+
+const pool = new Pool({
+  user: process.env.PG_USER || 'postgres',
+  host: process.env.PG_HOST || 'localhost',
+  database: process.env.PG_DATABASE || 'ejercicio_productos',
+  password: process.env.PG_PASSWORD || 'tu_contraseña',
+  port: process.env.PG_PORT || 5432,
+});
+
+pool.connect((error) => {
+  if(error) throw error;
+  console.log('Base de datos conectada.');
+});
+
+export default pool;
+```
+
+### Frontend Configuration
+
+Vite configuration in `vite.config.js`:
+
+```javascript
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    tailwindcss(),
+  ],
+});
+```
+
+## Production Deployment
+
+### Build for Production
+
+<Steps>
+  <Step title="Build Frontend">
+    ```bash
+    npm run build
+    ```
+
+    This creates an optimized production build in the `dist/` directory.
+  </Step>
+
+  <Step title="Set Production Environment Variables">
+    Update `.env` for production:
+
+    ```bash
+    NODE_ENV=production
+    PORT=80
+    
+    # Use production database
+    PG_HOST=your-production-db-host
+    PG_DATABASE=ejercicio_productos_prod
+    PG_PASSWORD=strong_production_password
+    
+    # Strong JWT secret
+    JWT_SECRET=long_random_production_secret
+    ```
+  </Step>
+
+  <Step title="Serve Static Files">
+    Configure Express to serve the built frontend:
+
+    ```javascript
+    // Add to server/app.js
+    import path from 'path';
+    
+    // Serve static files in production
+    if (process.env.NODE_ENV === 'production') {
+      app.use(express.static(path.join(__dirname, '../dist')));
+      
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../dist/index.html'));
+      });
+    }
+    ```
+  </Step>
+
+  <Step title="Use Process Manager">
+    Use PM2 to manage the Node.js process:
+
+    ```bash
+    # Install PM2 globally
+    npm install -g pm2
+    
+    # Start the application
+    pm2 start server/index.js --name "sistema-productos"
+    
+    # Configure PM2 to start on system boot
+    pm2 startup
+    pm2 save
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  **Production Security Checklist**:
+  - Use strong, unique passwords for database and JWT secret
+  - Enable HTTPS/SSL for encrypted communication
+  - Configure proper CORS origins (not `localhost`)
+  - Set up database backups
+  - Implement rate limiting on API endpoints
+  - Change default admin password
+  - Use environment-specific `.env` files
+  - Enable PostgreSQL SSL connections
+</Warning>
+
+## Verification and Testing
+
+### Test API Endpoints
+
+```bash
+# Test API health
+curl http://localhost:3000/api-productos
+
+# Expected: "API funcionando correctamente."
+
+# Test categories endpoint (requires auth)
+curl http://localhost:3000/api-productos/categorias
+```
+
+### Test Frontend Access
+
+1. Open browser to `http://localhost:5173`
+2. You should see the login page
+3. Login with default credentials:
+   - **Username**: `admin01`
+   - **Password**: `Admin01*`
+
+### Verify Database Connection
+
+Check backend console output:
+```
+Base de datos conectada.
+API funcionando en el puerto 3000.
+```
+
+## Troubleshooting
+
+<Accordion title="Database Connection Errors">
+  **Error**: `Connection refused` or `could not connect to server`
+
+  **Solutions**:
+  1. Verify PostgreSQL is running:
+     ```bash
+     pg_isready
+     sudo systemctl status postgresql
+     ```
+
+  2. Check PostgreSQL is listening on the correct port:
+     ```bash
+     sudo netstat -plunt | grep postgres
+     ```
+
+  3. Verify `.env` database credentials are correct
+
+  4. Check PostgreSQL allows local connections:
+     ```bash
+     # Edit pg_hba.conf
+     sudo nano /etc/postgresql/*/main/pg_hba.conf
+     
+     # Ensure this line exists:
+     host    all             all             127.0.0.1/32            md5
+     
+     # Restart PostgreSQL
+     sudo systemctl restart postgresql
+     ```
+
+  5. Test manual connection:
+     ```bash
+     psql -U postgres -h localhost -d ejercicio_productos
+     ```
+</Accordion>
+
+<Accordion title="Port Already in Use">
+  **Error**: `EADDRINUSE: address already in use`
+
+  **Solutions**:
+  1. Find process using the port:
+     ```bash
+     # For port 3000
+     lsof -i :3000
+     
+     # For port 5173
+     lsof -i :5173
+     ```
+
+  2. Kill the process:
+     ```bash
+     kill -9 <PID>
+     ```
+
+  3. Or change the port in `.env`:
+     ```bash
+     PORT=3001
+     ```
+</Accordion>
+
+<Accordion title="Module Import Errors">
+  **Error**: `Cannot find module` or `ERR_MODULE_NOT_FOUND`
+
+  **Solutions**:
+  1. Verify `package.json` has `"type": "module"`
+
+  2. Ensure all imports use `.js` extensions:
+     ```javascript
+     // Correct
+     import pool from './config/database.js';
+     
+     // Incorrect
+     import pool from './config/database';
+     ```
+
+  3. Reinstall dependencies:
+     ```bash
+     rm -rf node_modules package-lock.json
+     npm install
+     ```
+
+  4. Check Node.js version (must be 18+):
+     ```bash
+     node --version
+     ```
+</Accordion>
+
+<Accordion title="JWT Token Errors">
+  **Error**: `jwt malformed` or `invalid token`
+
+  **Solutions**:
+  1. Verify `JWT_SECRET` is set in `.env`
+
+  2. Clear browser cookies and try logging in again
+
+  3. Check cookies are enabled in browser
+
+  4. Verify CORS settings allow credentials:
+     ```javascript
+     app.use(cors({
+       origin: 'http://localhost:5173',
+       credentials: true  // Must be true
+     }));
+     ```
+</Accordion>
+
+<Accordion title="Frontend Build Errors">
+  **Error**: Build failures or Vite errors
+
+  **Solutions**:
+  1. Clear Vite cache:
+     ```bash
+     rm -rf node_modules/.vite
+     ```
+
+  2. Verify all Vue files have correct syntax
+
+  3. Check for circular dependencies
+
+  4. Rebuild:
+     ```bash
+     npm run build
+     ```
+</Accordion>
+
+<Accordion title="bcrypt Installation Issues">
+  **Error**: `bcrypt` fails to install or build
+
+  **Solutions**:
+  1. Install build tools:
+     ```bash
+     # Ubuntu/Debian
+     sudo apt-get install build-essential python3
+     
+     # macOS
+     xcode-select --install
+     
+     # Windows
+     npm install --global windows-build-tools
+     ```
+
+  2. Rebuild bcrypt:
+     ```bash
+     npm rebuild bcrypt --build-from-source
+     ```
+
+  3. Or use bcryptjs as alternative (update package.json)
+</Accordion>
+
+## Default Admin Account
+
+The database setup creates a default administrator account:
+
+- **Username**: `admin01`
+- **Password**: `Admin01*`
+- **Email**: `admin@email.com`
+- **Role**: `Administrador`
+
+<Warning>
+  **Security**: Change the default administrator password immediately, especially before deploying to production.
+</Warning>
+
+To change the password, log in and use the user management interface, or update directly in the database:
+
+```sql
+-- Update password (hashed with bcrypt)
+UPDATE Usuarios 
+SET contrasena = crypt('NewSecurePassword123!', gen_salt('bf'))
+WHERE nombre = 'admin01';
+```
+
+## Next Steps
+
+Your installation is complete! Here's what to do next:
+
+1. **Explore the Application**: Log in and familiarize yourself with the interface
+2. **Review the Code**: Examine the project structure and implementation
+3. **Customize**: Modify categories, add products, create users
+4. **API Testing**: Use Postman or curl to test API endpoints
+5. **Development**: Start building new features or modifications
+
+<Note>
+  For a quick overview of features and usage, refer back to the [Introduction](/introduction) page.
+</Note>

@@ -1,0 +1,249 @@
+---
+title: 'Configuration'
+description: 'Environment and configuration guide for Sistema de Productos'
+---
+
+## Overview
+
+Sistema de Productos uses environment variables for configuration management. This guide covers all configuration options including database, authentication, email, and server settings.
+
+## Environment Variables
+
+<Warning>
+  Never commit your `.env` file to version control. Add it to `.gitignore` to protect sensitive credentials.
+</Warning>
+
+Create a `.env` file in your project root with the following variables:
+
+### Required Variables
+
+<Steps>
+  <Step title="Server Configuration">
+    Configure the port where your API will run:
+    
+    ```bash
+    PORT=3000
+    ```
+  </Step>
+
+  <Step title="Database Configuration">
+    Set up PostgreSQL connection parameters:
+    
+    ```bash
+    PG_USER=postgres
+    PG_HOST=localhost
+    PG_DATABASE=ejercicio_productos
+    PG_PASSWORD=your_secure_password
+    PG_PORT=5432
+    ```
+  </Step>
+
+  <Step title="JWT Authentication">
+    Generate a secure random secret for JWT token signing:
+    
+    ```bash
+    JWT_SECRET=your_very_long_and_secure_random_secret_key
+    ```
+    
+    <Note>
+      Use a cryptographically secure random string. You can generate one using: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+    </Note>
+  </Step>
+
+  <Step title="Email Configuration">
+    Configure email credentials for password recovery:
+    
+    ```bash
+    EMAIL_USER=your-email@gmail.com
+    EMAIL_PASS=your-app-specific-password
+    ```
+    
+    <Warning>
+      For Gmail, use an App Password, not your regular password. Enable 2FA and generate an app-specific password from your Google Account settings.
+    </Warning>
+  </Step>
+</Steps>
+
+## Database Configuration
+
+The database configuration is defined in `server/config/database.js`:
+
+<CodeGroup>
+```javascript server/config/database.js
+import { Pool } from 'pg';
+import 'dotenv/config';
+
+const pool = new Pool({
+  user: process.env.PG_USER || 'postgres',
+  host: process.env.PG_HOST || 'localhost',
+  database: process.env.PG_DATABASE || 'ejercicio_productos',
+  password: process.env.PG_PASSWORD || 'tu_contraseña',
+  port: process.env.PG_PORT || 5432,
+});
+
+pool.connect((error) => {
+  if(error) throw error;
+  console.log('Base de datos conectada.');
+});
+
+export default pool;
+```
+
+```bash .env.example
+# Server
+PORT=3000
+
+# Database
+PG_USER=postgres
+PG_HOST=localhost
+PG_DATABASE=ejercicio_productos
+PG_PASSWORD=your_password
+PG_PORT=5432
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key
+
+# Email
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+```
+</CodeGroup>
+
+### Connection Pool
+
+The application uses `pg.Pool` for connection pooling, which:
+- Reuses database connections for better performance
+- Automatically handles connection lifecycle
+- Provides connection error handling
+
+## CORS Configuration
+
+CORS is configured in `server/app.js` to allow cross-origin requests from the frontend:
+
+```javascript server/app.js
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+```
+
+<Accordion title="CORS Configuration Options">
+  - **origin**: Specifies which origin can access the API (frontend URL)
+  - **credentials**: Allows cookies and authentication headers to be sent
+  
+  For production, update the origin to your production frontend URL:
+  
+  ```javascript
+  app.use(cors({
+    origin: process.env.FRONTEND_URL || 'https://your-production-domain.com',
+    credentials: true
+  }));
+  ```
+</Accordion>
+
+## Email Configuration
+
+Email is configured for password recovery using Nodemailer with Gmail SMTP:
+
+```javascript server/helpers/mailer.js
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+```
+
+<Note>
+  The system sends HTML-formatted emails for password recovery. The template is defined in `server/helpers/mailer.js`.
+</Note>
+
+### Gmail Setup
+
+<Steps>
+  <Step title="Enable 2-Factor Authentication">
+    Go to your Google Account settings and enable 2FA.
+  </Step>
+  
+  <Step title="Generate App Password">
+    Navigate to Security > App passwords and generate a new app password for "Mail".
+  </Step>
+  
+  <Step title="Add to Environment">
+    Add the 16-character app password to your `.env` file as `EMAIL_PASS`.
+  </Step>
+</Steps>
+
+## JWT Configuration
+
+JWT tokens are used for authentication with the following settings:
+
+```javascript server/helpers/auth.js
+export function generarToken(id, nombre, rol) {
+  return jwt.sign(
+    { id, nombre, rol }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: '5h' }
+  );
+}
+```
+
+### Token Properties
+
+- **Expiration**: 5 hours from creation
+- **Payload**: Contains user `id`, `nombre`, and `rol`
+- **Storage**: Stored in HTTP-only cookies for security
+
+<Warning>
+  The JWT_SECRET must be kept secure and never exposed in client-side code. Change it immediately if compromised.
+</Warning>
+
+## Environment-Specific Configuration
+
+### Development
+
+```bash .env.development
+PORT=3000
+PG_HOST=localhost
+PG_PORT=5432
+JWT_SECRET=dev_secret_change_in_production
+```
+
+### Production
+
+```bash .env.production
+PORT=8080
+PG_HOST=your-db-host.com
+PG_PORT=5432
+JWT_SECRET=your_very_secure_production_secret
+EMAIL_USER=noreply@yourdomain.com
+```
+
+<Note>
+  Always use different JWT secrets for development and production environments.
+</Note>
+
+## Validation
+
+To verify your configuration:
+
+<Steps>
+  <Step title="Check Environment Variables">
+    ```bash
+    node -e "require('dotenv').config(); console.log(process.env.PORT, process.env.PG_DATABASE)"
+    ```
+  </Step>
+  
+  <Step title="Test Database Connection">
+    Start the server and check for the "Base de datos conectada" message in the console.
+  </Step>
+  
+  <Step title="Verify API">
+    Test the API endpoint:
+    ```bash
+    curl http://localhost:3000/api-productos
+    ```
+  </Step>
+</Steps>

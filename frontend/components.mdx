@@ -1,0 +1,533 @@
+---
+title: 'Component Library'
+description: 'Reusable Vue components and their usage'
+---
+
+## Overview
+
+The component library provides reusable UI elements built with Vue 3 Composition API. All components follow consistent patterns for props, events, and styling.
+
+## Layout Components
+
+### Header
+
+The header component provides breadcrumb navigation and user menu.
+
+<Tabs>
+  <Tab title="Component">
+    ```vue src/components/Header.vue
+    <template>
+      <header class="relative flex items-center justify-between w-auto p-2 z-60 bg-white border-b border-slate-300">
+        <div class="flex items-center gap-3 text-slate-500">
+          <button @click="ocultarSidebar" type="button" class="flex items-center justify-center w-10 h-10 duration-300 ease-in-out rounded-lg cursor-pointer border border-transparent hover:bg-slate-50 hover:border-slate-300 lg:hidden">
+            <i class="fi-rr-sidebar text-xl grid place-items-center"></i>
+          </button>
+          <transition-group name="breadCrumbs" tag="ul" class="flex items-center gap-2 text-sm">
+            <li :key="'inicio'" class="flex items-center gap-3 duration-300 ease-in-out hover:opacity-50">
+              <router-link :to="'/inicio'">Inicio</router-link>
+            </li>
+            <li v-for="(item, index) in breadCrumbs" :key="index + item.nombre" class="flex items-center gap-2">
+              <i class="fi-rr-angle-small-right grid place-items-center text-lg"></i>
+              <router-link :to="item.ruta" class="duration-300 ease-in-out hover:opacity-50 last:pointer-events-none">{{ item.nombre }}</router-link>
+            </li>
+          </transition-group>
+        </div>
+        <button ref="botonUsuario" @click="toggleMenu" class="flex items-center justify-center w-10 h-10 gap-2 p-1 duration-300 ease-in-out bg-white rounded-lg cursor-pointer border border-slate-300 hover:bg-indigo-50 hover:border-indigo-300 md:w-auto md:px-2">
+          <i class="fi-sr-portrait text-2xl grid place-items-center"></i>
+          <div class="hidden flex-col justify-center text-[0.8rem] md:flex">
+            <span class="font-bold">{{ nombre }}</span>
+          </div>
+        </button>
+      </header>
+    </template>
+    ```
+  </Tab>
+  <Tab title="Usage">
+    The Header component is used in `MainLayout.vue:5`:
+
+    ```vue
+    <Header 
+      @ocultar-sidebar="ocultarSidebar" 
+      @minimizar-sidebar="minimizarSidebar" 
+    />
+    ```
+
+    **Events Emitted:**
+    - `minimizar-sidebar` - Toggles sidebar minimized state
+    - `ocultar-sidebar` - Toggles sidebar visibility on mobile
+  </Tab>
+  <Tab title="Features">
+    - **Breadcrumb Navigation**: Dynamic breadcrumbs from Pinia store
+    - **User Menu**: Dropdown with user info and logout
+    - **Responsive**: Collapsible sidebar toggle on mobile
+    - **Animations**: Smooth transitions for breadcrumbs
+  </Tab>
+</Tabs>
+
+### Sidebar
+
+Navigational sidebar with collapsible functionality.
+
+<Accordion title="View Component Code">
+  ```vue src/components/Sidebar.vue
+  <template>
+    <div class="relative flex h-full">
+      <div @click="ocultarSidebar" class="top-0 start-0 w-full h-full backdrop-blur-xs bg-black/10 z-80 lg:hidden" :class="sidebarOculto ? 'hidden' : 'fixed'"></div>
+      <aside :class="[sidebarOculto ? '-translate-x-[250px]' : 'translate-x-0', sidebarMinimizado ? 'lg:w-[72px]' : 'lg:w-60']" class="absolute z-90 w-60 h-full flex flex-col gap-5 bg-white border-e border-slate-300 shadow-lg duration-300 ease-in-out lg:relative lg:translate-x-0 lg:h-auto lg:shadow-none">
+        <div class="flex items-center justify-between p-4 text-xl font-bold">
+          <div class="flex items-center gap-3.5 overflow-hidden">
+            <i class="fi-rr-cube text-2xl grid place-items-center text-white bg-radial-[at_25%_25%] from-indigo-400 to-violet-400 p-1.5 rounded-lg"></i>
+            <span class="overflow-hidden">Sistema</span>
+          </div>
+        </div>
+        <ul class="flex flex-col gap-1 text-sm px-4 pb-2.5 text-slate-500">
+          <li class="flex items-center group" v-for="(opcion, index) in opciones" :key="index">
+            <router-link :to="opcion.ruta" @click="ocultarSidebar" class="relative flex items-center w-full h-full gap-3.5 p-2 duration-300 ease-in-out rounded-lg cursor-pointer router-link border border-transparent" exact-active-class="router-link--active">
+              <i :class="opcion.icono" class="grid place-items-center text-xl"></i>
+              <span class="overflow-hidden">{{ opcion.nombre }}</span>
+            </router-link>
+            <div v-if="sidebarMinimizado" class="shadow-md origin-left absolute z-60 start-20 rounded-md bg-indigo-700 text-sm px-3 py-2 text-white opacity-0 group-hover:opacity-100 group-hover:scale-100 pointer-events-none ease-in-out duration-300 scale-85">
+              {{ opcion.nombre }}
+            </div>
+          </li>
+        </ul>
+      </aside>
+    </div>
+  </template>
+  ```
+</Accordion>
+
+**Props:**
+- `sidebarOculto` (Boolean) - Controls sidebar visibility
+- `sidebarMinimizado` (Boolean) - Controls sidebar width
+
+**Navigation Options:**
+```javascript src/components/Sidebar.vue
+let opciones = [
+  { nombre: "Inicio", icono: "fi-rr-chart-simple-horizontal", ruta: "/inicio" },
+  { nombre: "Productos", icono: "fi-rr-box-open-full", ruta: "/productos" },
+  { nombre: "Categorías", icono: "fi-rr-layers", ruta: "/categorias" },
+  { nombre: "Usuarios", icono: "fi-rr-user", ruta: "/usuarios" },
+];
+
+// Filter options based on user role
+const { rol } = JSON.parse(localStorage.getItem('usuario'));
+if (rol === 'Usuario') {
+  opciones = opciones.filter(opcion => opcion.nombre !== 'Usuarios');
+}
+```
+
+<Note>
+  The Sidebar automatically filters the "Usuarios" option for non-admin users based on the role stored in localStorage.
+</Note>
+
+## Data Display Components
+
+### Tabla (Table)
+
+Reusable table component with pagination, search, and CRUD actions.
+
+<Tabs>
+  <Tab title="Component">
+    ```vue src/components/Tabla.vue
+    <template>
+      <div class="flex flex-col overflow-auto text-sm border rounded-lg border-slate-300">
+        <table class="w-full">
+          <thead class="sticky top-0 z-60 bg-slate-50">
+            <tr class="font-bold text-slate-500">
+              <th class="p-2">N°</th>
+              <th v-for="(columna, index) in columnas" :key="index" class="p-2 text-start">{{ columna.nombre }}</th>
+              <th class="p-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="dataPaginada.length === 0" class="bg-white border-b border-b-slate-200">
+              <td :colspan="columnas.length + 2" class="p-2 text-center text-slate-500">No hay registros disponibles</td>
+            </tr>
+            <tr v-else v-for="(item, index) in dataPaginada" :key="item.id" class="bg-white border-b border-b-slate-200">
+              <td class="p-1 text-center">{{ calcularNumeroFila(index) }}</td>
+              <td v-for="columna in columnas" :key="columna.nombre" class="py-1.5 px-2">
+                <CeldaRender :columna="columna" :item="item" />
+              </td>
+              <td class="py-1.5 px-2">
+                <div class="relative flex items-center justify-center gap-2">
+                  <BotonTabla @ver="ver(item.id)" @actualizar="actualizar(item.id)" @eliminar="eliminar(item.id)" />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- Pagination controls -->
+      </div>
+    </template>
+    ```
+  </Tab>
+  <Tab title="Props & Events">
+    **Props:**
+    ```typescript
+    {
+      data: Object,          // Array of data objects
+      columnas: Object,      // Column configuration
+      busqueda: String       // Search query
+    }
+    ```
+
+    **Events Emitted:**
+    ```typescript
+    {
+      ver: (id: number) => void,
+      actualizar: (id: number) => void,
+      eliminar: (id: number) => void
+    }
+    ```
+  </Tab>
+  <Tab title="Usage Example">
+    From `src/views/Productos.vue:14`:
+
+    ```vue
+    <script setup>
+    const columnas = [
+      { nombre: 'Nombre', field: 'nombre' },
+      { nombre: 'Precio', field: 'precio' },
+      { nombre: 'Stock', field: 'stock' },
+      { nombre: 'Categoría', field: 'categoria' },
+    ];
+    </script>
+
+    <template>
+      <Tabla 
+        :columnas="columnas" 
+        :data="productos" 
+        :busqueda="busqueda"
+        @ver="mostrarModalVer" 
+        @actualizar="mostrarModalActualizar" 
+        @eliminar="mostrarModalEliminar" 
+      />
+    </template>
+    ```
+  </Tab>
+</Tabs>
+
+**Features:**
+- **Pagination**: Configurable items per page (5, 10, 15, 20)
+- **Search**: Real-time filtering across all columns
+- **Sorting**: Automatic row numbering
+- **Responsive**: Adapts to mobile screens
+- **Actions**: Ver, Actualizar, Eliminar buttons
+
+### CeldaRender (Cell Renderer)
+
+Custom cell renderer for different data types in tables.
+
+<CodeGroup>
+```vue Product Name
+<div v-if="columna.field === 'nombre'" class="flex flex-col justify-center max-w-[250px] lg:max-w-[310px]">
+  <span>{{ item.nombre }}</span>
+  <span class="overflow-hidden text-xs text-slate-400 text-ellipsis whitespace-nowrap">{{ item.descripcion ? item.descripcion : '' }}</span>
+</div>
+```
+
+```vue Price & Stock
+<span v-else-if="columna.field === 'precio'">${{ item.precio }}</span>
+<span v-else-if="columna.field === 'stock'">{{ item.stock }} U.</span>
+```
+
+```vue Category with Icon
+<div v-else-if="columna.field === 'categoria'" class="flex items-center justify-start gap-3 text-sm">
+  <i :class="[iconos[item.icono], colores[item.color], 'rounded-md p-1 grid place-items-center']"></i>
+  <span>{{ item.categoria }}</span>
+</div>
+```
+
+```vue Timestamps
+<div v-else-if="columna.field === 'creado'" class="flex flex-col">
+  <div class="flex items-center gap-2">
+    <i class="grid fi-rr-calendar place-items-center text-slate-500"></i>
+    <span>{{ item.creado_fecha }}</span>
+  </div>
+  <div class="flex items-center gap-2 text-slate-400">
+    <i class="grid fi-rr-watch place-items-center"></i>
+    <span>{{ item.creado_hora }}</span>
+  </div>
+</div>
+```
+</CodeGroup>
+
+## Form Components
+
+### BuscadorInput (Search Input)
+
+Search input with icon button.
+
+```vue src/components/BuscadorInput.vue
+<template>
+  <div class="relative flex items-center max-w-full gap-2">
+    <input 
+      v-model="busqueda" 
+      id="buscador" 
+      class="flex-1 min-w-0 p-2 bg-white border rounded-lg border-slate-300 outline-0 outline-indigo-400 hover:border-slate-400 focus:outline-1 h-9" 
+      placeholder="Burcar" 
+      type="text" 
+      name="buscador" 
+      autocomplete="off" 
+    />
+    <label for="buscador" class="grid place-items-center bg-indigo-400 rounded-lg h-9 w-9 text-lg cursor-pointer hover:opacity-50 active:scale-95 transition-all duration-300">
+      <i class="fi-rr-search text-white grid place-items-center"></i>
+    </label>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch } from 'vue';
+
+const busqueda = ref('');
+const emits = defineEmits(['buscar']);
+
+watch(() => busqueda.value, (nuevoValor) => {
+  emits('buscar', nuevoValor);
+});
+</script>
+```
+
+**Events:** Emits `buscar` event with search value on input change.
+
+### LoginFormulario (Login Form)
+
+Authentication form with password visibility toggle.
+
+<Accordion title="View Login Form Code">
+  ```vue src/components/LoginFormulario.vue
+  <template>
+    <span class="mb-10 text-lg font-bold text-center">Iniciar sesión</span>
+    <form @submit.prevent="login" class="flex flex-col justify-center gap-5 max-w-full w-[325px]">
+      <div class="flex flex-col justify-center gap-1">
+        <label for="nombre">Usuario</label>
+        <div class="flex items-center">
+          <div class="grid w-10 h-full p-2 border place-items-center border-e-0 border-slate-300 bg-slate-100 rounded-s-lg">
+            <i class="fi-sr-user grid place-items-center text-lg text-slate-400"></i>
+          </div>
+          <input 
+            v-model="usuario.nombre" 
+            id="nombre" 
+            type="text" 
+            class="w-full p-2 rounded-e-lg bg-white border border-slate-300 placeholder:text-slate-400 outline-0 outline-indigo-400 hover:border-slate-400 focus:outline-1" 
+            autocomplete="off" 
+            maxlength="50" 
+            inputmode="text"
+          >
+        </div>
+      </div>
+      <div class="flex flex-col justify-center gap-1">
+        <label for="contrasena">Contraseña</label>
+        <div class="relative flex items-center">
+          <div class="grid w-10 h-full p-2 border place-items-center border-e-0 border-slate-300 bg-slate-100 rounded-s-lg">
+            <i class="fi-sr-lock grid place-items-center text-lg text-slate-400"></i>
+          </div>
+          <input 
+            v-model="usuario.contrasena" 
+            id="contrasena" 
+            :type="tipoInput" 
+            class="w-full p-2 bg-white rounded-e-lg border border-slate-300 placeholder:text-slate-400 outline-0 outline-indigo-400 hover:border-slate-400 focus:outline-1" 
+            autocomplete="off" 
+            maxlength="50" 
+            inputmode="text"
+          >
+          <button @click="mostrarContrasena" type="button" class="absolute grid place-items-center text-xl cursor-pointer text-slate-400 right-3 -top-2.5">
+            <i :class="[iconoContrasena ? 'fi-rr-eye' : 'fi-rr-eye-crossed']" class="grid place-items-center"></i>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="px-4 mt-6 bg-indigo-400 rounded-lg cursor-pointer text-indigo-50 duration-300 hover:bg-indigo-300 h-9 active:scale-95">Ingresar</button>
+    </form>
+  </template>
+  ```
+</Accordion>
+
+**Key Features:**
+- Input validation
+- Password visibility toggle
+- Icon prefixes for inputs
+- Integration with authentication service
+- Error notifications via inject/provide
+
+## Modal Components
+
+### ModalEliminar (Delete Modal)
+
+Confirmation modal for delete actions.
+
+```vue src/components/ModalEliminar.vue
+<template>
+  <transition name="backdrop">
+    <div v-if="mostrar" @click="cerrarModal" class="fixed top-0 left-0 w-full h-full backdrop-blur-xs bg-black/10 z-110"></div>
+  </transition>
+  <transition name="fade">
+    <div v-if="mostrar" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex-col flex p-5 gap-3 m-auto bg-white border rounded-lg w-[400px] max-w-[90%] max-h-[80%] border-slate-300 text-slate-600 z-120">
+      <div class="flex w-full">
+        <div class="flex flex-col items-center justify-center w-full gap-3">
+          <div class="grid w-12 h-12 text-red-400 bg-red-100 rounded-md place-items-center">
+            <i class="fi-rr-triangle-warning text-3xl grid place-items-center"></i>
+          </div>
+          <span class="font-bold">Eliminar {{ titulo }}</span>
+        </div>
+        <button @click="cerrarModal" type="button" class="absolute grid w-10 h-10 text-xl transition-all duration-300 ease-in-out border border-transparent rounded-full cursor-pointer right-2 top-2 justify-self-end place-content-center hover:bg-slate-50 hover:border-slate-300 group">
+          <i class="fi-sr-cross-small grid place-content-center"></i>
+        </button>
+      </div>
+      <div class="rounded-lg bg-slate-50">
+        <p class="p-4 text-sm text-center text-slate-600">¿Estás seguro de que deseas eliminar este registro?</p>
+      </div>
+      <div class="flex items-center justify-center gap-5 text-sm">
+        <button @click="cerrarModal" type="button" class="px-4 duration-200 bg-white border rounded-lg cursor-pointer border-slate-300 h-9 hover:opacity-50 text-slate-600 active:scale-95">Cancelar</button>
+        <button @click="eliminar" type="button" class="px-4 duration-200 bg-red-400 rounded-lg cursor-pointer h-9 text-red-50 hover:bg-red-300 active:scale-95">Eliminar</button>
+      </div>
+    </div>
+  </transition>
+</template>
+```
+
+**Props:** `titulo` (String) - Entity type being deleted
+
+**Methods Exposed:** `mostrarModal()` - Opens the modal
+
+**Events:** Emits `eliminar` when confirmed
+
+## Utility Components
+
+### Notificaciones (Notifications)
+
+Toast notification system for user feedback.
+
+```vue src/components/Notificaciones.vue
+<template>
+  <div class="fixed z-100 bottom-6 right-6">
+    <transition-group name="notificacion" tag="div">
+      <div v-for="notificacion in notificaciones" :key="notificacion.id" class="flex items-center justify-between gap-2 p-2 my-2 text-sm bg-white border rounded-lg shadow-sm border-slate-300 text-slate-600">
+        <div v-if="notificacion.tipo === 'exito'" class="grid text-lg rounded-md w-7 h-7 text-emerald-500 bg-emerald-200 place-items-center">
+          <i class="grid place-items-center fi-sr-check-circle"></i>
+        </div>
+        <div v-else class="grid text-lg text-red-400 bg-red-200 rounded-md w-7 h-7 place-items-center">
+          <i class="grid fi-sr-times-hexagon place-items-center"></i>
+        </div>
+        <span>{{ notificacion.mensaje }}</span>
+        <button @click.stop="removerNotificacion(notificacion.id)" type="button" class="grid text-xl transition-all duration-300 ease-in-out border border-transparent rounded-lg cursor-pointer w-7 h-7 top-2 right-2 justify-self-end place-content-center hover:bg-slate-50 hover:border-slate-300 text-slate-400">
+          <i class="grid fi-sr-cross-small place-content-center"></i>
+        </button>
+      </div>
+    </transition-group>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const notificaciones = ref([]);
+
+function agregarNotificacion(tipo, mensaje) {
+  const id = Date.now();
+  notificaciones.value.push({ id, tipo, mensaje });
+  if (notificaciones.value.length > 3) {
+    notificaciones.value.shift();
+  }
+  setTimeout(() => {
+    removerNotificacion(id);
+  }, 5000);
+}
+
+function removerNotificacion(id) {
+  notificaciones.value = notificaciones.value.filter(notificacion => notificacion.id !== id)
+}
+
+defineExpose({
+  agregarNotificacion
+});
+</script>
+```
+
+**Features:**
+- Auto-dismiss after 5 seconds
+- Maximum 3 notifications visible
+- Success/Error types with icons
+- Slide-in animation from right
+- Manual dismiss option
+
+### BotonRegistrar (Register Button)
+
+Standardized button for triggering create actions.
+
+```vue src/components/BotonRegistrar.vue
+<template>
+  <button type="button" @click="$emit('click')" class="flex items-center justify-center gap-2 px-3 bg-indigo-400 text-white duration-200 text-sm rounded-lg cursor-pointer h-9 hover:opacity-50 active:scale-95">
+    <i class="fi-sr-cross-small text-md grid place-content-center rotate-45"></i>
+    <span>Registrar</span>
+  </button>
+</template>
+```
+
+### BotonTabla (Table Action Button)
+
+Dropdown menu for table row actions.
+
+```vue src/components/BotonTabla.vue
+<template>
+  <div ref="wrapper" class="relative">
+    <button @click="toggle" type="button" :class="mostrar ? 'bg-slate-100' : 'bg-white'" class="relative grid w-8 h-8 duration-200 rounded-lg cursor-pointer place-items-center active:scale-95 hover:opacity-50 hover:border-slate-300 border border-transparent">
+      <i class="fi-rr-menu-dots grid text-lg text-stale-500 place-items-center"></i>
+    </button>
+    <transition name="fade">   
+      <div ref="popover" v-if="mostrar" class="absolute top-0 z-50 text-sm origin-top-right bg-white border rounded-lg shadow-md border-slate-300 right-10">
+        <ul class="flex flex-col justify-center p-0.5 gap-y-1 w-28">
+          <li v-if="origen !== 'Usuarios'">
+            <button type="button" @click="$emit('ver')" class="w-full h-full rounded-md px-2 py-0.5 cursor-pointer text-start hover:bg-slate-100 active:scale-95 transition-all duration-300 ease-in-out">Detalles</button>
+          </li>
+          <li>
+            <button type="button" @click="$emit('actualizar')" class="w-full h-full rounded-md px-2 py-0.5 cursor-pointer text-start hover:bg-slate-100 active:scale-95 transition-all duration-300 ease-in-out">Actualizar</button>
+          </li>
+          <li>
+            <button type="button" @click="$emit('eliminar')" class="w-full h-full rounded-md px-2 py-0.5 cursor-pointer text-start text-red-400 hover:bg-red-100 active:scale-95 transition-all duration-300 ease-in-out">Eliminar</button>
+          </li>
+        </ul>
+      </div>
+    </transition>
+  </div>
+</template>
+```
+
+**Features:**
+- Click outside to close
+- Conditional "Detalles" option
+- Three-dot menu icon
+- Smooth fade transition
+
+## Component Organization
+
+<Accordion title="Feature-Based Modules">
+  Components are organized by feature:
+
+  - **Productos/**: ModalRegistro.vue, ModalActualizar.vue, ModalVer.vue
+  - **Categorias/**: ModalRegistro.vue, ModalActualizar.vue, ModalVer.vue
+  - **Usuarios/**: ModalRegistro.vue, ModalActualizar.vue
+
+  Each module contains CRUD-specific modal components.
+</Accordion>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Composition API" icon="code">
+    All components use `<script setup>` for cleaner syntax
+  </Card>
+  <Card title="Event Emitters" icon="bolt">
+    Components emit events rather than directly mutating parent state
+  </Card>
+  <Card title="Props Validation" icon="shield">
+    Props are typed with Object, String, Boolean, etc.
+  </Card>
+  <Card title="Ref Exposure" icon="eye">
+    Modals expose methods via `defineExpose` for parent control
+  </Card>
+</CardGroup>
+
+<Note>
+  All components follow a consistent styling pattern using Tailwind utility classes and custom transitions defined in `style.css`.
+</Note>

@@ -1,0 +1,279 @@
+---
+title: 'Authentication'
+description: 'Endpoints for user authentication and password recovery'
+---
+
+## Login
+
+<api method="POST" endpoint="/api-productos/usuarios/login">
+Authenticates a user and sets a JWT token cookie.
+</api>
+
+### Authentication
+
+No authentication required (public endpoint).
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Username
+</ParamField>
+
+<ParamField body="contrasena" type="string" required>
+  User password
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Usuario autenticado."
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  User authentication data
+  
+  <Expandable title="properties">
+    <ResponseField name="nombre" type="string">
+      Username
+    </ResponseField>
+    
+    <ResponseField name="correo" type="string">
+      User email address
+    </ResponseField>
+    
+    <ResponseField name="rol" type="string">
+      User role ("Usuario" or "Administrador")
+    </ResponseField>
+    
+    <ResponseField name="autenticado" type="boolean">
+      Authentication status (always true on success)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api-productos/usuarios/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "admin",
+    "contrasena": "mypassword"
+  }' \
+  -c cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Usuario autenticado.",
+  "data": {
+    "nombre": "admin",
+    "correo": "admin@example.com",
+    "rol": "Administrador",
+    "autenticado": true
+  }
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Invalid username or password
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 401,
+    "mensaje": "Datos incorrectos.",
+    "detalles": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error during authentication
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al validar las credenciales.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Logout
+
+<api method="POST" endpoint="/api-productos/usuarios/logout">
+Logs out the current user by clearing the authentication cookie.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie
+
+### Request Body
+
+No request body required.
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Logout exitoso."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api-productos/usuarios/logout \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Logout exitoso.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error during logout
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al realizar el logout.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Password Recovery
+
+<api method="POST" endpoint="/api-productos/usuarios/recuperar-contrasena">
+Generates a new password and sends it to the user's email address.
+</api>
+
+### Authentication
+
+No authentication required (public endpoint).
+
+### Request Body
+
+<ParamField body="correo" type="string" required>
+  User's registered email address
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Se ha enviado la nueva contraseña."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api-productos/usuarios/recuperar-contrasena \
+  -H "Content-Type: application/json" \
+  -d '{
+    "correo": "user@example.com"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Se ha enviado la nueva contraseña.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  Email address not registered
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 400,
+    "mensaje": "Correo electrónico no registrado.",
+    "detalles": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server or email sending error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al procesar la solicitud.",
+    "detalles": null
+  }
+  ```
+</ResponseField>
+
+## Notes
+
+- The JWT token is stored in an HTTP-only cookie and automatically included in subsequent requests
+- Token expiration is set to 1 hour (3600000ms)
+- Password recovery generates a random password and emails it to the user
+- Passwords are hashed using bcrypt with 10 salt rounds before storage

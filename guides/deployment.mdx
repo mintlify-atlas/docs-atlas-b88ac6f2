@@ -1,0 +1,451 @@
+---
+title: 'Deployment'
+description: 'Production deployment instructions for Sistema de Productos'
+---
+
+## Overview
+
+This guide covers deploying Sistema de Productos to production, including building the frontend, configuring the server, and setting up the database.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Node.js">
+    Ensure Node.js 18+ is installed on your production server:
+    ```bash
+    node --version
+    ```
+  </Step>
+
+  <Step title="PostgreSQL">
+    Install and configure PostgreSQL 12+ on your server:
+    ```bash
+    psql --version
+    ```
+  </Step>
+
+  <Step title="Process Manager">
+    Install PM2 for process management:
+    ```bash
+    npm install -g pm2
+    ```
+  </Step>
+</Steps>
+
+## Database Setup
+
+### 1. Create Production Database
+
+<CodeGroup>
+```sql Create Database
+-- Connect to PostgreSQL
+psql -U postgres
+
+-- Create database
+CREATE DATABASE ejercicio_productos;
+
+-- Create user (optional)
+CREATE USER productos_user WITH PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE ejercicio_productos TO productos_user;
+```
+
+```sql Create Tables
+-- Create Users table
+CREATE TABLE Usuarios (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL UNIQUE,
+  contrasena VARCHAR(255) NOT NULL,
+  correo VARCHAR(255) NOT NULL UNIQUE,
+  rol VARCHAR(50) NOT NULL,
+  creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  actualizado TIMESTAMP
+);
+
+-- Create Categories table
+CREATE TABLE Categorias (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL UNIQUE,
+  creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  actualizado TIMESTAMP
+);
+
+-- Create Products table
+CREATE TABLE Productos (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  precio DECIMAL(10, 2) NOT NULL,
+  stock INTEGER NOT NULL,
+  categoria_id INTEGER REFERENCES Categorias(id),
+  creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  actualizado TIMESTAMP
+);
+```
+
+```sql Create Views
+-- Create Users View (without password)
+CREATE VIEW UsuariosView AS
+SELECT id, nombre, correo, rol, creado, actualizado
+FROM Usuarios;
+```
+</CodeGroup>
+
+<Warning>
+  Always use strong passwords for your database users and change default credentials.
+</Warning>
+
+### 2. Configure Database Connection
+
+Set up your production environment variables:
+
+```bash .env
+PG_USER=productos_user
+PG_HOST=localhost
+PG_DATABASE=ejercicio_productos
+PG_PASSWORD=your_secure_production_password
+PG_PORT=5432
+```
+
+## Frontend Build
+
+### Build for Production
+
+Build the Vue.js frontend for production:
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+
+  <Step title="Build Frontend">
+    ```bash
+    npm run build
+    ```
+    
+    This creates optimized static files in the `dist/` directory.
+  </Step>
+
+  <Step title="Verify Build">
+    Check that the build completed successfully:
+    ```bash
+    ls -la dist/
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  The build process is configured in `vite.config.js` and uses Vite for fast, optimized builds.
+</Note>
+
+### Serve Static Files
+
+You can serve the built files using:
+
+<Accordion title="Option 1: Express Static Middleware">
+  Add to your `server/app.js`:
+  
+  ```javascript
+  import path from 'path';
+  import { fileURLToPath } from 'url';
+  
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  
+  // Serve static files from dist
+  app.use(express.static(path.join(__dirname, '../dist')));
+  
+  // Handle SPA routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+  ```
+</Accordion>
+
+<Accordion title="Option 2: Nginx Reverse Proxy">
+  Configure Nginx to serve static files and proxy API requests:
+  
+  ```nginx
+  server {
+    listen 80;
+    server_name yourdomain.com;
+    
+    # Serve frontend
+    location / {
+      root /path/to/your/dist;
+      try_files $uri $uri/ /index.html;
+    }
+    
+    # Proxy API requests
+    location /api-productos {
+      proxy_pass http://localhost:3000;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_set_header Host $host;
+      proxy_cache_bypass $http_upgrade;
+    }
+  }
+  ```
+</Accordion>
+
+## Environment Configuration
+
+Create a production `.env` file with all required variables:
+
+```bash .env.production
+# Server Configuration
+PORT=3000
+NODE_ENV=production
+
+# Database Configuration
+PG_USER=productos_user
+PG_HOST=localhost
+PG_DATABASE=ejercicio_productos
+PG_PASSWORD=your_secure_production_password
+PG_PORT=5432
+
+# JWT Configuration
+JWT_SECRET=your_very_long_and_secure_random_secret_key_minimum_64_characters
+
+# Email Configuration
+EMAIL_USER=noreply@yourdomain.com
+EMAIL_PASS=your_app_specific_password
+```
+
+<Warning>
+  Never use development secrets in production. Generate new, secure secrets for production deployment.
+</Warning>
+
+## Process Management
+
+### Using PM2
+
+PM2 is recommended for managing your Node.js application in production:
+
+<Steps>
+  <Step title="Create PM2 Configuration">
+    Create `ecosystem.config.js`:
+    
+    ```javascript ecosystem.config.js
+    module.exports = {
+      apps: [{
+        name: 'sistema-productos',
+        script: './server/index.js',
+        instances: 'max',
+        exec_mode: 'cluster',
+        env: {
+          NODE_ENV: 'production',
+          PORT: 3000
+        },
+        error_file: './logs/err.log',
+        out_file: './logs/out.log',
+        log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
+      }]
+    };
+    ```
+  </Step>
+
+  <Step title="Start Application">
+    ```bash
+    pm2 start ecosystem.config.js
+    ```
+  </Step>
+
+  <Step title="Configure Auto-restart">
+    ```bash
+    pm2 startup
+    pm2 save
+    ```
+  </Step>
+</Steps>
+
+### PM2 Commands
+
+<CodeGroup>
+```bash Status
+# Check application status
+pm2 status
+
+# View logs
+pm2 logs sistema-productos
+
+# Monitor resources
+pm2 monit
+```
+
+```bash Management
+# Restart application
+pm2 restart sistema-productos
+
+# Reload with zero downtime
+pm2 reload sistema-productos
+
+# Stop application
+pm2 stop sistema-productos
+```
+
+```bash Updates
+# Pull latest code
+git pull origin main
+
+# Install dependencies
+npm install
+
+# Rebuild frontend
+npm run build
+
+# Reload app
+pm2 reload sistema-productos
+```
+</CodeGroup>
+
+## Security Hardening
+
+<Steps>
+  <Step title="Update CORS Settings">
+    Update `server/app.js` with your production domain:
+    
+    ```javascript
+    app.use(cors({
+      origin: 'https://yourdomain.com',
+      credentials: true
+    }));
+    ```
+  </Step>
+
+  <Step title="Enable HTTPS">
+    Update cookie settings in `server/controllers/usuarios.controller.js`:
+    
+    ```javascript
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,  // Enable for HTTPS
+      sameSite: 'strict',
+      maxAge: 3600000
+    });
+    ```
+  </Step>
+
+  <Step title="Set Environment">
+    ```bash
+    NODE_ENV=production
+    ```
+  </Step>
+</Steps>
+
+## SSL/TLS Configuration
+
+### Using Certbot (Let's Encrypt)
+
+<Steps>
+  <Step title="Install Certbot">
+    ```bash
+    sudo apt-get update
+    sudo apt-get install certbot python3-certbot-nginx
+    ```
+  </Step>
+
+  <Step title="Obtain Certificate">
+    ```bash
+    sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+    ```
+  </Step>
+
+  <Step title="Auto-renewal">
+    ```bash
+    sudo certbot renew --dry-run
+    ```
+  </Step>
+</Steps>
+
+## Health Checks
+
+Implement a health check endpoint for monitoring:
+
+```javascript server/app.js
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString() 
+  });
+});
+```
+
+## Monitoring
+
+<Accordion title="PM2 Plus (Optional)">
+  For advanced monitoring:
+  
+  ```bash
+  pm2 link your_secret_key your_public_key
+  ```
+  
+  This provides:
+  - Real-time metrics
+  - Error tracking
+  - Custom metrics
+  - Notifications
+</Accordion>
+
+## Backup Strategy
+
+### Database Backups
+
+<CodeGroup>
+```bash Manual Backup
+# Create backup
+pg_dump -U productos_user ejercicio_productos > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore from backup
+psql -U productos_user ejercicio_productos < backup_20260304_120000.sql
+```
+
+```bash Automated Backup
+# Create backup script
+#!/bin/bash
+BACKUP_DIR="/var/backups/postgres"
+DATE=$(date +%Y%m%d_%H%M%S)
+pg_dump -U productos_user ejercicio_productos | gzip > $BACKUP_DIR/backup_$DATE.sql.gz
+
+# Keep only last 7 days
+find $BACKUP_DIR -name "backup_*.sql.gz" -mtime +7 -delete
+```
+
+```bash Cron Job
+# Add to crontab (daily at 2 AM)
+0 2 * * * /path/to/backup-script.sh
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<Accordion title="Database Connection Issues">
+  Check PostgreSQL is running and accepting connections:
+  
+  ```bash
+  sudo systemctl status postgresql
+  psql -U productos_user -d ejercicio_productos -h localhost
+  ```
+</Accordion>
+
+<Accordion title="Port Already in Use">
+  Find and kill the process using the port:
+  
+  ```bash
+  lsof -i :3000
+  kill -9 <PID>
+  ```
+</Accordion>
+
+<Accordion title="Permission Errors">
+  Ensure proper file permissions:
+  
+  ```bash
+  chmod -R 755 /path/to/application
+  chown -R your-user:your-group /path/to/application
+  ```
+</Accordion>
+
+<Note>
+  Always test your deployment in a staging environment before deploying to production.
+</Note>

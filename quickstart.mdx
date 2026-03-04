@@ -1,80 +1,350 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get Sistema de Productos up and running in minutes with this quick start guide
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+Get Sistema de Productos running on your local machine in just a few minutes. This guide walks you through the essential steps from cloning to running the application.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This quickstart assumes you have Node.js (v18 or higher) and PostgreSQL installed. If not, see the [Installation Guide](/installation) for prerequisites.
+</Note>
+
+## Step-by-Step Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the project to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd proyectico-vue-express
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required npm packages:
+
+    ```bash
+    npm install
+    ```
+
+    This will install:
+    - Vue.js and related frontend dependencies
+    - Express and backend packages
+    - PostgreSQL driver (pg)
+    - Authentication libraries (jsonwebtoken, bcrypt)
+    - Development tools (Vite, Nodemon, Concurrently)
+  </Step>
+
+  <Step title="Set Up PostgreSQL Database">
+    Create the PostgreSQL database:
+
+    ```bash
+    # Connect to PostgreSQL (adjust command based on your setup)
+    psql -U postgres
+    ```
+
+    ```sql
+    -- Create the database
+    CREATE DATABASE ejercicio_productos;
+    
+    -- Exit psql
+    \q
+    ```
+
+    Run the database schema script:
+
+    ```bash
+    psql -U postgres -d ejercicio_productos -f server/config/bd.sql
+    ```
+
+    This will create:
+    - **Tables**: Categorias, Productos, Usuarios
+    - **Views**: ProductosView, CategoriasView, UsuariosView
+    - **Sample data**: 4 categories, 19 products, and 1 admin user
+    - **Extensions**: pgcrypto for password encryption
+
+    <Accordion title="View Database Schema">
+      The schema includes three main tables:
+
+      **Categorias Table**:
+      ```sql
+      CREATE TABLE Categorias (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(50) NOT NULL UNIQUE,
+        icono VARCHAR(50) NOT NULL,
+        color VARCHAR(50) NOT NULL,
+        descripcion TEXT,
+        creado TIMESTAMP NOT NULL,
+        actualizado TIMESTAMP 
+      );
+      ```
+
+      **Productos Table**:
+      ```sql
+      CREATE TABLE Productos (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL UNIQUE,
+        precio DECIMAL(10, 2) NOT NULL,
+        stock INT NOT NULL DEFAULT(0),
+        descripcion TEXT,
+        creado TIMESTAMP NOT NULL,
+        actualizado TIMESTAMP,
+        idCategoria INT REFERENCES Categorias(id) NOT NULL
+      );
+      ```
+
+      **Usuarios Table**:
+      ```sql
+      CREATE TABLE Usuarios (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(20) NOT NULL UNIQUE,
+        contrasena TEXT NOT NULL,
+        correo VARCHAR(50) NOT NULL,
+        rol VARCHAR(20) NOT NULL,
+        creado TIMESTAMP NOT NULL,
+        actualizado TIMESTAMP
+      );
+      ```
+    </Accordion>
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the project root:
+
+    ```bash
+    touch .env
+    ```
+
+    Add the following configuration (adjust values for your setup):
+
+    ```bash
+    # Server Configuration
+    PORT=3000
+
+    # PostgreSQL Database
+    PG_USER=postgres
+    PG_HOST=localhost
+    PG_DATABASE=ejercicio_productos
+    PG_PASSWORD=your_postgres_password
+    PG_PORT=5432
+
+    # JWT Secret (use a strong, random string in production)
+    JWT_SECRET=your_jwt_secret_key_here
+
+    # Email Configuration (optional, for nodemailer)
+    EMAIL_USER=your_email@example.com
+    EMAIL_PASSWORD=your_email_password
+    ```
+
+    <Warning>
+      Never commit the `.env` file to version control. It's already included in `.gitignore` for safety.
+    </Warning>
+
+    <Accordion title="Generate a Secure JWT Secret">
+      You can generate a secure random string for `JWT_SECRET` using Node.js:
+
+      ```bash
+      node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+      ```
+
+      Copy the output and use it as your `JWT_SECRET` value.
+    </Accordion>
+  </Step>
+
+  <Step title="Start the Development Servers">
+    Run both frontend and backend servers concurrently:
+
+    ```bash
+    npm run dev
+    ```
+
+    This command uses concurrently to run:
+    - **Frontend** (Vite dev server): `http://localhost:5173`
+    - **Backend** (Express API): `http://localhost:3000`
+
+    You should see output similar to:
+    ```
+    [0] 
+    [0]   VITE v7.1.0  ready in XXX ms
+    [0] 
+    [0]   ➜  Local:   http://localhost:5173/
+    [1] API funcionando en el puerto 3000.
+    [1] Base de datos conectada.
+    ```
+  </Step>
+
+  <Step title="Access the Application">
+    Open your browser and navigate to:
+
+    ```
+    http://localhost:5173
+    ```
+
+    You can log in with the default administrator account:
+    - **Username**: `admin01`
+    - **Password**: `Admin01*`
+
+    <Warning>
+      Change the default administrator password immediately after first login, especially in production environments.
+    </Warning>
+  </Step>
+</Steps>
+
+## Available NPM Scripts
+
+The `package.json` includes several useful scripts:
+
+<CodeGroup>
+```json package.json scripts
+{
+  "scripts": {
+    "dev:frontend": "vite --host",
+    "dev:backend": "nodemon server/index.js",
+    "dev": "concurrently 'npm:dev:frontend' 'npm:dev:backend'",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
+```
+</CodeGroup>
+
+### Script Descriptions
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `dev` | `npm run dev` | Runs both frontend and backend in development mode |
+| `dev:frontend` | `npm run dev:frontend` | Runs only the Vite frontend server |
+| `dev:backend` | `npm run dev:backend` | Runs only the Express backend server with Nodemon |
+| `build` | `npm run build` | Builds the frontend for production |
+| `preview` | `npm run preview` | Preview the production build locally |
+
+## Verify Installation
+
+Test that everything is working correctly:
+
+### 1. Check API Health
+
+Visit the API health endpoint:
+
+```bash
+curl http://localhost:3000/api-productos
+```
+
+Expected response:
+```
+API funcionando correctamente.
+```
+
+### 2. Test Database Connection
+
+The backend console should display:
+```
+Base de datos conectada.
+```
+
+### 3. Verify Frontend Access
+
+Navigate to `http://localhost:5173` in your browser. You should see the application's login page.
+
+## API Endpoints Overview
+
+Once running, the following API endpoints are available:
+
+### Base URL
+```
+http://localhost:3000/api-productos
+```
+
+### Available Routes
+
+- **Categories**: `/api-productos/categorias`
+  - GET - List all categories
+  - POST - Create new category
+  - PUT - Update category
+  - DELETE - Delete category
+
+- **Products**: `/api-productos/productos`
+  - GET - List all products
+  - POST - Create new product
+  - PUT - Update product
+  - DELETE - Delete product
+
+- **Users**: `/api-productos/usuarios`
+  - GET - List all users (admin only)
+  - POST - Create new user
+  - PUT - Update user
+  - DELETE - Delete user
+
+<Note>
+  Most endpoints require authentication. Include the JWT token in cookies or headers when making requests.
+</Note>
+
+## Common Issues
+
+<Accordion title="Database Connection Failed">
+  If you see "Database connection failed" or similar errors:
+
+  1. Verify PostgreSQL is running:
+     ```bash
+     # On Linux/Mac
+     pg_isready
+     
+     # On Windows
+     pg_ctl status
+     ```
+
+  2. Check your `.env` file has correct database credentials
+  3. Ensure the database `ejercicio_productos` exists
+  4. Verify your PostgreSQL user has permissions to access the database
+</Accordion>
+
+<Accordion title="Port Already in Use">
+  If port 3000 or 5173 is already in use:
+
+  1. Change the `PORT` in `.env` for the backend
+  2. For frontend, Vite will automatically try the next available port
+  3. Or, stop the process using the port:
+     ```bash
+     # Find process using port 3000
+     lsof -i :3000
+     
+     # Kill the process
+     kill -9 <PID>
+     ```
+</Accordion>
+
+<Accordion title="Module Not Found Errors">
+  If you encounter module import errors:
+
+  1. Delete `node_modules` and `package-lock.json`:
+     ```bash
+     rm -rf node_modules package-lock.json
+     ```
+
+  2. Reinstall dependencies:
+     ```bash
+     npm install
+     ```
+
+  3. Verify you're using Node.js v18 or higher:
+     ```bash
+     node --version
+     ```
+</Accordion>
+
+## Next Steps
+
+Now that you have Sistema de Productos running:
+
+- Explore the product management features
+- Create and organize categories
+- Test the API endpoints using tools like Postman or curl
+- Review the [Installation Guide](/installation) for production deployment tips
+- Examine the source code to understand the architecture
+
+<Note>
+  For detailed installation instructions, troubleshooting, and production deployment guidance, see the [Installation Guide](/installation).
 </Note>

@@ -1,0 +1,467 @@
+---
+title: 'Security'
+description: 'Security best practices and implementation details'
+---
+
+## Overview
+
+Sistema de Productos implements multiple security layers to protect user data and prevent unauthorized access. This guide covers authentication, authorization, password security, and best practices.
+
+## Authentication
+
+### JWT Token-Based Authentication
+
+The application uses JSON Web Tokens (JWT) for stateless authentication:
+
+```javascript server/helpers/auth.js
+import jwt from 'jsonwebtoken';
+
+export function generarToken(id, nombre, rol) {
+  return jwt.sign(
+    { id, nombre, rol }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: '5h' }
+  );
+}
+```
+
+<Note>
+  Tokens expire after 5 hours, requiring users to re-authenticate. This limits the window of opportunity if a token is compromised.
+</Note>
+
+### Token Verification
+
+All protected routes verify tokens using the authentication middleware:
+
+```javascript server/middlewares/auth.js
+import jwt from 'jsonwebtoken';
+import Usuarios from '../models/usuarios.model.js';
+
+export async function auntenticarToken(req, res, next) {
+  const token = req.cookies.token;
+  
+  if(!token) {
+    return respuestaError(req, res, 401, 'Acceso no autorizado.');
+  }
+  
+  try {
+    const dataToken = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (typeof dataToken === 'object' && dataToken.id) {
+      const user = await Usuarios.leerUsuario(dataToken.id);
+      
+      if(user) {
+        req.user = user;
+        next();
+      } else {
+        respuestaError(req, res, 401, 'Token inválido.');
+      }
+    }
+  } catch (error) {
+    respuestaError(req, res, 401, 'Token inválido.');
+  }
+}
+```
+
+<Steps>
+  <Step title="Token Extraction">
+    The middleware extracts the JWT from HTTP-only cookies, preventing XSS attacks.
+  </Step>
+  
+  <Step title="Token Verification">
+    Verifies the token signature using the JWT_SECRET to ensure it hasn't been tampered with.
+  </Step>
+  
+  <Step title="User Validation">
+    Checks that the user referenced in the token still exists in the database.
+  </Step>
+  
+  <Step title="Request Context">
+    Attaches the user object to the request for use in subsequent middleware and controllers.
+  </Step>
+</Steps>
+
+## HTTP-Only Cookies
+
+### Secure Cookie Configuration
+
+Tokens are stored in HTTP-only cookies to prevent JavaScript access:
+
+```javascript server/controllers/usuarios.controller.js
+res.cookie('token', token, {
+  httpOnly: true,    // Prevents JavaScript access
+  secure: false,     // Set to true in production with HTTPS
+  sameSite: 'lax',   // CSRF protection
+  maxAge: 3600000    // 1 hour in milliseconds
+});
+```
+
+<Warning>
+  In production, always set `secure: true` when using HTTPS to ensure cookies are only sent over encrypted connections.
+</Warning>
+
+### Cookie Security Properties
+
+<Accordion title="httpOnly">
+  Prevents client-side JavaScript from accessing the cookie, protecting against XSS attacks. Even if an attacker injects malicious JavaScript, they cannot steal the authentication token.
+</Accordion>
+
+<Accordion title="secure">
+  When set to `true`, ensures cookies are only transmitted over HTTPS connections. This prevents man-in-the-middle attacks from intercepting authentication tokens.
+</Accordion>
+
+<Accordion title="sameSite">
+  Controls when cookies are sent with cross-site requests:
+  - `strict`: Cookie never sent in cross-site requests
+  - `lax`: Cookie sent with top-level navigations (default, good balance)
+  - `none`: Cookie sent with all requests (requires `secure: true`)
+</Accordion>
+
+## Password Security
+
+### Bcrypt Password Hashing
+
+Passwords are hashed using bcrypt with a cost factor of 10:
+
+<CodeGroup>
+```javascript Password Hashing
+import bcrypt from 'bcrypt';
+
+// Creating a user
+const { nombre, contrasena, correo, rol } = req.body;
+const hashContrasena = await bcrypt.hash(contrasena, 10);
+await Usuarios.crearUsuario([ nombre, hashContrasena, correo, rol ]);
+```
+
+```javascript Password Verification
+// Login validation
+const usuario = await Usuarios.validarUsuario(nombre);
+const usuarioValido = await bcrypt.compare(contrasena, usuario.contrasena);
+
+if (!usuarioValido) {
+  return respuestaError(req, res, 401, 'Datos incorrectos.');
+}
+```
+
+```javascript Password Reset
+// Generating and hashing new password
+const nuevaContrasena = generarContraseña();
+const hashContrasena = await bcrypt.hash(nuevaContrasena, 10);
+await Usuarios.cambiarContrasena(usuario.id, hashContrasena);
+```
+</CodeGroup>
+
+### Why Bcrypt?
+
+<Steps>
+  <Step title="Adaptive Hashing">
+    The cost factor (10) determines the computational cost. As hardware improves, you can increase this value to maintain security.
+  </Step>
+  
+  <Step title="Built-in Salt">
+    Bcrypt automatically generates and includes a unique salt for each password, preventing rainbow table attacks.
+  </Step>
+  
+  <Step title="Slow by Design">
+    Intentionally slow to prevent brute-force attacks. Each hash takes ~60-100ms, making mass password cracking impractical.
+  </Step>
+</Steps>
+
+<Warning>
+  Never store passwords in plain text or use weak hashing algorithms like MD5 or SHA-1. Always use bcrypt, scrypt, or Argon2.
+</Warning>
+
+## Role-Based Access Control (RBAC)
+
+### Authorization Middleware
+
+The system implements role-based access control with two roles: Administrator and regular users:
+
+```javascript server/middlewares/auth.js
+export async function autenticarAdministrador(req, res, next) {
+  if (!req.user) {
+    return respuestaError(req, res, 401, 'Acceso no autorizado.');
+  }
+  
+  const { rol } = req.user;
+  
+  if (rol === 'Administrador') {
+    next();
+  } else {
+    return respuestaError(req, res, 401, 'Acceso no autorizado.');
+  }
+}
+```
+
+### Protected Routes
+
+Routes are protected using middleware chains:
+
+```javascript server/routes/usuarios.routes.js
+import { auntenticarToken, autenticarAdministrador } from '../middlewares/auth.js';
+
+// Public routes
+UsuariosRoutes.post('/login', UsuariosController.loginUsuario);
+UsuariosRoutes.post('/recuperar-contrasena', UsuariosController.recuperarContraseña);
+
+// Authenticated routes
+UsuariosRoutes.post('/logout', auntenticarToken, UsuariosController.logoutUsuario);
+
+// Admin-only routes
+UsuariosRoutes.get('/', auntenticarToken, autenticarAdministrador, UsuariosController.listarUsuarios);
+UsuariosRoutes.post('/', auntenticarToken, autenticarAdministrador, UsuariosController.crearUsuario);
+UsuariosRoutes.route('/:id')
+  .get(auntenticarToken, autenticarAdministrador, UsuariosController.leerUsuario)
+  .put(auntenticarToken, autenticarAdministrador, UsuariosController.actualizarUsuario)
+  .delete(auntenticarToken, autenticarAdministrador, UsuariosController.eliminarUsuario);
+```
+
+<Note>
+  Middleware is applied in order. First, `auntenticarToken` verifies the user is logged in, then `autenticarAdministrador` checks for admin privileges.
+</Note>
+
+## API Security Best Practices
+
+### 1. Input Validation
+
+Always validate and sanitize user input:
+
+```javascript
+// Validate email format
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+  return respuestaError(req, res, 400, 'Formato de correo inválido.');
+}
+
+// Validate password strength
+if (contrasena.length < 8) {
+  return respuestaError(req, res, 400, 'La contraseña debe tener al menos 8 caracteres.');
+}
+```
+
+### 2. SQL Injection Prevention
+
+Use parameterized queries (already implemented):
+
+<CodeGroup>
+```javascript Secure (Parameterized)
+// SECURE: Using parameterized queries
+const sql = 'SELECT * FROM Usuarios WHERE nombre = $1;';
+const resultado = await pool.query(sql, [ nombre ]);
+```
+
+```javascript Insecure (Avoid)
+// INSECURE: Never concatenate user input
+const sql = `SELECT * FROM Usuarios WHERE nombre = '${nombre}';`;
+const resultado = await pool.query(sql);
+```
+</CodeGroup>
+
+<Warning>
+  Never concatenate user input directly into SQL queries. Always use parameterized queries with placeholders ($1, $2, etc.).
+</Warning>
+
+### 3. Rate Limiting
+
+Implement rate limiting to prevent brute-force attacks:
+
+```javascript
+import rateLimit from 'express-rate-limit';
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Demasiados intentos de inicio de sesión. Intenta de nuevo más tarde.'
+});
+
+UsuariosRoutes.post('/login', loginLimiter, UsuariosController.loginUsuario);
+```
+
+### 4. CORS Configuration
+
+Restrict cross-origin requests to trusted domains:
+
+```javascript server/app.js
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+```
+
+### 5. Environment Variables
+
+Never hardcode secrets. Always use environment variables:
+
+<CodeGroup>
+```javascript Secure
+// SECURE: Using environment variables
+const token = jwt.sign(payload, process.env.JWT_SECRET);
+```
+
+```javascript Insecure
+// INSECURE: Hardcoded secret
+const token = jwt.sign(payload, 'my-secret-key');
+```
+</CodeGroup>
+
+### 6. Error Handling
+
+Don't leak sensitive information in error messages:
+
+<CodeGroup>
+```javascript Production
+// PRODUCTION: Generic error message
+respuestaError(req, res, 500, 'Error al procesar la solicitud.');
+```
+
+```javascript Development
+// DEVELOPMENT: Detailed error for debugging
+respuestaError(req, res, 500, 'Error al procesar la solicitud.', error.message);
+```
+</CodeGroup>
+
+## Security Checklist
+
+<Steps>
+  <Step title="Environment Security">
+    - [ ] Use strong, unique JWT_SECRET (minimum 64 characters)
+    - [ ] Never commit `.env` files to version control
+    - [ ] Use different secrets for development and production
+    - [ ] Rotate secrets regularly
+  </Step>
+
+  <Step title="Authentication">
+    - [ ] Implement token expiration (5 hours or less)
+    - [ ] Use HTTP-only cookies for token storage
+    - [ ] Enable `secure` flag for cookies in production
+    - [ ] Implement logout functionality
+    - [ ] Verify user exists on each authenticated request
+  </Step>
+
+  <Step title="Password Security">
+    - [ ] Use bcrypt with cost factor ≥ 10
+    - [ ] Enforce minimum password length (8+ characters)
+    - [ ] Implement password complexity requirements
+    - [ ] Secure password reset mechanism with email verification
+  </Step>
+
+  <Step title="Authorization">
+    - [ ] Implement role-based access control
+    - [ ] Protect admin routes with authorization middleware
+    - [ ] Verify permissions on every protected endpoint
+  </Step>
+
+  <Step title="API Security">
+    - [ ] Use parameterized queries for database operations
+    - [ ] Validate and sanitize all user input
+    - [ ] Implement rate limiting on sensitive endpoints
+    - [ ] Configure CORS to allow only trusted origins
+    - [ ] Use HTTPS in production
+  </Step>
+
+  <Step title="Database Security">
+    - [ ] Use strong database passwords
+    - [ ] Create dedicated database users with minimal privileges
+    - [ ] Never expose database credentials in code
+    - [ ] Regularly backup database
+    - [ ] Use views to hide sensitive fields (like passwords)
+  </Step>
+</Steps>
+
+## Security Headers
+
+Add security headers to protect against common attacks:
+
+```javascript server/app.js
+import helmet from 'helmet';
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+```
+
+## Monitoring and Auditing
+
+### Logging Security Events
+
+```javascript
+// Log failed login attempts
+if (!usuarioValido) {
+  console.log(`Failed login attempt for user: ${nombre} at ${new Date().toISOString()}`);
+  return respuestaError(req, res, 401, 'Datos incorrectos.');
+}
+
+// Log successful logins
+console.log(`User ${usuario.nombre} logged in at ${new Date().toISOString()}`);
+```
+
+### Database Audit Trail
+
+The database includes timestamp fields for auditing:
+
+```sql
+CREATE TABLE Usuarios (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  contrasena VARCHAR(255) NOT NULL,
+  correo VARCHAR(255) NOT NULL,
+  rol VARCHAR(50) NOT NULL,
+  creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  actualizado TIMESTAMP
+);
+```
+
+<Note>
+  Track when records are created and updated to detect suspicious activity or unauthorized changes.
+</Note>
+
+## Incident Response
+
+If a security incident occurs:
+
+<Steps>
+  <Step title="Immediate Actions">
+    1. Rotate JWT_SECRET immediately
+    2. Invalidate all existing tokens
+    3. Force all users to re-authenticate
+    4. Review access logs for suspicious activity
+  </Step>
+
+  <Step title="Investigation">
+    1. Identify the scope of the breach
+    2. Determine what data was accessed
+    3. Check for unauthorized database changes
+    4. Review recent deployments and code changes
+  </Step>
+
+  <Step title="Remediation">
+    1. Patch vulnerabilities
+    2. Update dependencies
+    3. Strengthen security measures
+    4. Notify affected users if necessary
+  </Step>
+
+  <Step title="Prevention">
+    1. Conduct security audit
+    2. Implement additional monitoring
+    3. Update security policies
+    4. Train team on security best practices
+  </Step>
+</Steps>
+
+<Warning>
+  Have an incident response plan in place before you need it. Regular security audits and penetration testing can identify vulnerabilities before they're exploited.
+</Warning>

@@ -1,0 +1,521 @@
+---
+title: 'Categories'
+description: 'CRUD endpoints for managing product categories'
+---
+
+All category endpoints require authentication via JWT token cookie.
+
+## List Categories
+
+<api method="GET" endpoint="/api-productos/categorias">
+Retrieve a list of all categories.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Any authenticated user
+
+### Request Parameters
+
+No parameters required.
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  Empty string
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of category objects
+  
+  <Expandable title="category object">
+    <ResponseField name="id" type="number">
+      Category ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Category name
+    </ResponseField>
+    
+    <ResponseField name="icono" type="string">
+      Icon identifier or class name
+    </ResponseField>
+    
+    <ResponseField name="color" type="string">
+      Color code (e.g., hex color)
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Category description
+    </ResponseField>
+    
+    <ResponseField name="creado" type="string">
+      Creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="actualizado" type="string">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET http://localhost:3000/api-productos/categorias \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "",
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Electrónica",
+      "icono": "fa-laptop",
+      "color": "#3B82F6",
+      "descripcion": "Dispositivos electrónicos y accesorios",
+      "creado": "2026-01-10T08:00:00.000Z",
+      "actualizado": "2026-01-10T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "nombre": "Ropa",
+      "icono": "fa-shirt",
+      "color": "#10B981",
+      "descripcion": "Prendas de vestir y accesorios",
+      "creado": "2026-01-10T08:05:00.000Z",
+      "actualizado": "2026-01-10T08:05:00.000Z"
+    }
+  ]
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al listar las categorías.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Create Category
+
+<api method="POST" endpoint="/api-productos/categorias">
+Create a new category.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Any authenticated user
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Category name
+</ParamField>
+
+<ParamField body="icono" type="string" required>
+  Icon identifier (e.g., FontAwesome class name)
+</ParamField>
+
+<ParamField body="color" type="string" required>
+  Color code (e.g., hex color like "#3B82F6")
+</ParamField>
+
+<ParamField body="descripcion" type="string" required>
+  Category description
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (201)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Categoría registrada con exito."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api-productos/categorias \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "nombre": "Electrónica",
+    "icono": "fa-laptop",
+    "color": "#3B82F6",
+    "descripcion": "Dispositivos electrónicos y accesorios"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 201,
+  "mensaje": "Categoría registrada con exito.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al registrar la categoría.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Get Category by ID
+
+<api method="GET" endpoint="/api-productos/categorias/:id">
+Retrieve a single category by ID.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Any authenticated user
+
+### Path Parameters
+
+<ParamField path="id" type="number" required>
+  Category ID
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  Empty string
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Category object with same structure as list endpoint
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET http://localhost:3000/api-productos/categorias/1 \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "",
+  "data": {
+    "id": 1,
+    "nombre": "Electrónica",
+    "icono": "fa-laptop",
+    "color": "#3B82F6",
+    "descripcion": "Dispositivos electrónicos y accesorios",
+    "creado": "2026-01-10T08:00:00.000Z",
+    "actualizado": "2026-01-10T08:00:00.000Z"
+  }
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  Category not found
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 400,
+    "mensaje": "Categoría no encontrada.",
+    "detalles": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al leer la categoría.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Update Category
+
+<api method="PUT" endpoint="/api-productos/categorias/:id">
+Update an existing category.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Any authenticated user
+
+### Path Parameters
+
+<ParamField path="id" type="number" required>
+  Category ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Category name
+</ParamField>
+
+<ParamField body="icono" type="string" required>
+  Icon identifier
+</ParamField>
+
+<ParamField body="color" type="string" required>
+  Color code
+</ParamField>
+
+<ParamField body="descripcion" type="string" required>
+  Category description
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Categoría actualizada exitosamente."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X PUT http://localhost:3000/api-productos/categorias/1 \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "nombre": "Electrónica Actualizada",
+    "icono": "fa-laptop",
+    "color": "#2563EB",
+    "descripcion": "Dispositivos electrónicos, accesorios y más"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Categoría actualizada exitosamente.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  Category not found
+  
+  ```json
+  {
+    "ok": true,
+    "statusCode": 400,
+    "mensaje": "Categoría no encontrada.",
+    "data": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al actualizar la categoría.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Delete Category
+
+<api method="DELETE" endpoint="/api-productos/categorias/:id">
+Delete a category by ID.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Any authenticated user
+
+### Path Parameters
+
+<ParamField path="id" type="number" required>
+  Category ID
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Categoría eliminada exitosamente."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X DELETE http://localhost:3000/api-productos/categorias/1 \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Categoría eliminada exitosamente.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  Category not found
+  
+  ```json
+  {
+    "ok": true,
+    "statusCode": 400,
+    "mensaje": "Categoría no encontrada.",
+    "data": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error or foreign key constraint violation (if products reference this category)
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al eliminadar la categoría.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+## Notes
+
+- All timestamps are automatically managed by the database
+- The `creado` field is set to `CURRENT_TIMESTAMP` on creation
+- The `actualizado` field is updated to `CURRENT_TIMESTAMP` on every update
+- Category data is retrieved from the `CategoriasView` database view
+- Deleting a category that has associated products will fail due to foreign key constraints
+- Categories are returned ordered by name alphabetically

@@ -1,0 +1,150 @@
+---
+title: 'API Overview'
+description: 'Complete reference for the Sistema de Productos REST API'
+---
+
+## Base URL
+
+All API endpoints are prefixed with:
+
+```
+/api-productos
+```
+
+## Authentication
+
+The API uses JWT (JSON Web Token) authentication via HTTP-only cookies. After successful login, the server sets a `token` cookie that is automatically sent with subsequent requests.
+
+### Cookie Configuration
+
+- **Name**: `token`
+- **Type**: HTTP-only
+- **SameSite**: `lax`
+- **Max Age**: 3600000ms (1 hour)
+- **Secure**: `false` (development mode)
+
+## Authorization
+
+The API implements role-based access control (RBAC) with the following roles:
+
+- **Usuario**: Standard user with access to products and categories
+- **Administrador**: Admin user with full access including user management
+
+## Response Format
+
+All API responses follow a consistent JSON structure.
+
+### Success Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Success message",
+  "data": {}
+}
+```
+
+<ResponseField name="ok" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="statusCode" type="number" required>
+  HTTP status code
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  Success or informational message
+</ResponseField>
+
+<ResponseField name="data" type="object | array">
+  Response data payload (null if no data)
+</ResponseField>
+
+### Error Response
+
+```json
+{
+  "ok": false,
+  "statusCode": 400,
+  "mensaje": "Error message",
+  "detalles": "Error details"
+}
+```
+
+<ResponseField name="ok" type="boolean" required>
+  Always `false` for errors
+</ResponseField>
+
+<ResponseField name="statusCode" type="number" required>
+  HTTP error status code
+</ResponseField>
+
+<ResponseField name="mensaje" type="string" required>
+  Error message
+</ResponseField>
+
+<ResponseField name="detalles" type="string">
+  Detailed error information (null if not available)
+</ResponseField>
+
+## HTTP Status Codes
+
+The API uses standard HTTP status codes:
+
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 201 | Resource created successfully |
+| 400 | Bad request or resource not found |
+| 401 | Unauthorized (invalid credentials) |
+| 403 | Forbidden (insufficient permissions) |
+| 500 | Internal server error |
+
+## Rate Limiting
+
+Currently, no rate limiting is implemented. This may be added in future versions.
+
+## API Endpoints
+
+The API is organized into three main resource groups:
+
+### Authentication
+
+Public endpoints for user authentication and password recovery.
+
+- [Authentication API](/api/authentication)
+
+### Products
+
+Manage product inventory. Requires authentication.
+
+- [Products API](/api/products)
+
+### Categories
+
+Manage product categories. Requires authentication.
+
+- [Categories API](/api/categories)
+
+### Users
+
+Manage system users. Requires authentication and Administrator role.
+
+- [Users API](/api/users)
+
+## Example Request
+
+Here's a complete example of authenticating and making an API request:
+
+```bash
+# Login and save cookies
+curl -X POST http://localhost:3000/api-productos/usuarios/login \
+  -H "Content-Type: application/json" \
+  -d '{"nombre":"admin","contrasena":"password"}' \
+  -c cookies.txt
+
+# Use the saved cookie for authenticated requests
+curl -X GET http://localhost:3000/api-productos/productos \
+  -b cookies.txt
+```

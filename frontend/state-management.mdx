@@ -1,0 +1,517 @@
+---
+title: 'State Management'
+description: 'Pinia stores and state management patterns'
+---
+
+## Overview
+
+The application uses **Pinia** as the state management solution for Vue 3. Pinia provides a lightweight, type-safe store with a simple API and excellent DevTools integration.
+
+## Setup
+
+### Pinia Initialization
+
+Pinia is initialized in `src/main.js:2`:
+
+```javascript src/main.js
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
+import router from './router';
+import './style.css';
+
+const app = createApp(App);
+const pinia = createPinia();
+
+app.use(pinia);  // Install Pinia before router
+app.use(router);
+
+app.mount('#app');
+```
+
+<Note>
+  Pinia is installed before the router to ensure stores are available for navigation guards.
+</Note>
+
+## Store Architecture
+
+### BreadCrumbs Store
+
+The breadcrumbs store manages navigation breadcrumb state across the application.
+
+<Tabs>
+  <Tab title="Store Definition">
+    ```javascript src/store/breadCrumbs.js
+    import { defineStore } from 'pinia';
+
+    export const useBreadCrumbsStore = defineStore('breadCrumbs', {
+      state: () => ({
+        breadCrumbs: [],
+      }),
+      actions: {
+        setBreadCrumbs(newBreadCrumbs) {
+          this.breadCrumbs = newBreadCrumbs;
+        }
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="Usage in Components">
+    From `src/components/Header.vue:50`:
+
+    ```vue
+    <script setup>
+    import { storeToRefs } from 'pinia';
+    import { useBreadCrumbsStore } from '../store/breadCrumbs.js';
+
+    const breadCrumbsStore = useBreadCrumbsStore();
+    const { breadCrumbs } = storeToRefs(breadCrumbsStore);
+    </script>
+
+    <template>
+      <transition-group name="breadCrumbs" tag="ul" class="flex items-center gap-2 text-sm">
+        <li :key="'inicio'" class="flex items-center gap-3 duration-300 ease-in-out hover:opacity-50">
+          <router-link :to="'/inicio'">Inicio</router-link>
+        </li>
+        <li v-for="(item, index) in breadCrumbs" :key="index + item.nombre" class="flex items-center gap-2">
+          <i class="fi-rr-angle-small-right grid place-items-center text-lg"></i>
+          <router-link :to="item.ruta" class="duration-300 ease-in-out hover:opacity-50 last:pointer-events-none">{{ item.nombre }}</router-link>
+        </li>
+      </transition-group>
+    </template>
+    ```
+  </Tab>
+  <Tab title="Setting Breadcrumbs">
+    From `src/views/Productos.vue:38`:
+
+    ```javascript
+    import { useBreadCrumbsStore } from '../store/breadCrumbs.js';
+
+    const breadCrumbsStore = useBreadCrumbsStore();
+    breadCrumbsStore.setBreadCrumbs([
+      { nombre: 'Productos', ruta: '/productos' }
+    ]);
+    ```
+
+    Each view sets its own breadcrumb trail on mount.
+  </Tab>
+</Tabs>
+
+## State Management Patterns
+
+### Local Storage for Authentication
+
+While Pinia is available, the application uses **localStorage** for authentication state to persist across page refreshes.
+
+<Accordion title="Authentication State Management">
+  **Storage Format:**
+  ```javascript
+  {
+    nombre: "John Doe",
+    rol: "Administrador",
+    autenticado: true
+  }
+  ```
+
+  **Reading from localStorage:**
+  ```javascript src/components/Header.vue
+  const { nombre, rol } = JSON.parse(localStorage.getItem('usuario'));
+  ```
+
+  **Router Guard with localStorage:**
+  ```javascript src/router/index.js
+  router.beforeEach((to, from, next) => {
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
+    
+    // Check authentication
+    if (to.meta.autenticado && !usuario.autenticado) {
+      return next('/');
+    }
+    
+    // Redirect if already authenticated
+    if (to.path === '/' && usuario && usuario.autenticado) {
+      return next('/inicio');
+    }
+    
+    // Check admin role
+    if (to.meta.administrador && usuario.rol !== 'Administrador') {
+      return next('/inicio');
+    }
+    
+    next();
+  });
+  ```
+</Accordion>
+
+### Service Layer Pattern
+
+The application uses a service layer pattern for data management instead of Pinia stores for CRUD operations.
+
+<Tabs>
+  <Tab title="Product Service">
+    ```javascript src/services/productos.service.js
+    import api from '../api/axios.js';
+
+    export default {
+      async listar() {
+        const res = await api.get('/productos');
+        const json = res.data;
+        return json.data; 
+      },
+
+      async crear(producto) {
+        const res = await api.post('/productos', producto);
+        return res.data;
+      },
+
+      async leer(id) {
+        const res = await api.get(`/productos/${id}`);
+        const json = res.data;
+        return json.data;
+      },
+
+      async actualizar(producto) {
+        const res = await api.put(`/productos/${producto.id}`, producto);
+        return res.data;
+      },
+
+      async eliminar(id) {
+        const res = await api.delete(`/productos/${id}`);
+        return res.data;
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Using Services in Views">
+    From `src/views/Productos.vue:95`:
+
+    ```javascript
+    import { ref, onMounted } from 'vue';
+    import productoService from '../services/productos.service.js';
+    import categoriasServices from '../services/categorias.service.js';
+
+    const productos = ref([]);
+    const producto = ref({});
+    const categorias = ref([]);
+
+    async function listar() {
+      try {
+        productos.value = await productoService.listar();
+      } catch (error) {
+        const { mensaje } = error.response.data;
+        mostrarNotificacion('error', mensaje);
+      }
+    }
+
+    async function crear(producto) {
+      try {
+        const respuesta = await productoService.crear(producto);
+        mostrarNotificacion('exito', respuesta.mensaje);
+      } catch(error) {
+        const { mensaje } = error.response.data;
+        mostrarNotificacion('error', mensaje);
+      }
+      listar();
+    }
+
+    async function actualizar(producto) {
+      try {
+        const respuesta = await productoService.actualizar(producto);
+        mostrarNotificacion('exito', respuesta.mensaje);
+      } catch(error) {
+        const { mensaje } = error.response.data;
+        mostrarNotificacion('error', mensaje);
+      }
+      listar();
+    }
+
+    async function eliminar() {
+      try {
+        if (idProducto) {
+          const respuesta = await productoService.eliminar(idProducto.value);
+          mostrarNotificacion('exito', respuesta.mensaje);
+        }
+      } catch (error) {
+        const { mensaje } = error.response.data;
+        mostrarNotificacion('error', mensaje);
+      }
+      listar();
+    }
+
+    onMounted(() => {
+      listar();
+      cargarCategorias();
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  **Design Decision**: The application uses component-local `ref()` state for data management rather than centralized Pinia stores. This approach works well for CRUD operations where data is fetched fresh on each page load.
+</Note>
+
+## Component State Patterns
+
+### Reactive State with ref()
+
+Components manage local state using Vue's `ref()` composition API:
+
+<CodeGroup>
+```javascript Modal State
+const modalVer = ref(null);
+const modalRegistro = ref(null);
+const modalActualizar = ref(null);
+const modalEliminar = ref(null);
+
+function mostrarModalRegistrar() {
+  modalRegistro.value.mostrarModal();
+}
+```
+
+```javascript Data State
+const productos = ref([]);
+const producto = ref({});
+const idProducto = ref('');
+const categorias = ref([]);
+```
+
+```javascript UI State
+const busqueda = ref('');
+const itemsPorPagina = ref(10);
+const paginaActual = ref(1);
+```
+</CodeGroup>
+
+### Computed Properties
+
+From `src/components/Tabla.vue:82`:
+
+```javascript
+import { ref, computed, watch } from 'vue';
+
+const dataFiltrada = computed(() => {
+  if(!props.busqueda) return props.data;
+  const busquedaFormateada = props.busqueda.toLowerCase();
+  return props.data.filter(item => {
+    return props.columnas.some(columna => {
+      const valor = item[columna.field];
+      return valor && valor.toString().toLowerCase().includes(busquedaFormateada);
+    });
+  });
+});
+
+const totalPaginas = computed(() => {
+  return Math.ceil(dataFiltrada.value.length / itemsPorPagina.value);
+});
+
+const dataPaginada = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
+  const fin = inicio + itemsPorPagina.value;
+  return dataFiltrada.value.slice(inicio, fin);
+});
+```
+
+### Watchers
+
+```javascript src/components/Tabla.vue
+watch([itemsPorPagina, busqueda], () => {
+  paginaActual.value = 1;
+});
+```
+
+## Provide/Inject Pattern
+
+### Notification System
+
+From `src/components/LoginFormulario.vue:45`:
+
+```javascript
+import { ref, inject } from 'vue';
+
+const mostrarNotificacion = inject('triggerNotificacion');
+
+// Later in the component
+if (usuario.value.nombre === '' || usuario.value.contrasena === '') {
+  mostrarNotificacion('error', 'Complete ambos campos.');
+  return;
+}
+```
+
+<Accordion title="Provide/Inject for Context">
+  The application likely provides notification functionality at the layout or app level:
+
+  ```javascript
+  import { provide } from 'vue';
+
+  // In parent component
+  const triggerNotificacion = (tipo, mensaje) => {
+    notificacionRef.value.agregarNotificacion(tipo, mensaje);
+  };
+
+  provide('triggerNotificacion', triggerNotificacion);
+  ```
+
+  This allows any child component to trigger notifications without prop drilling.
+</Accordion>
+
+### Context Injection
+
+From `src/components/BotonTabla.vue:29`:
+
+```javascript
+const origen = inject('origen', '');
+
+// Used to conditionally show "Detalles" button
+<li v-if="origen !== 'Usuarios'">
+  <button type="button" @click="$emit('ver')">Detalles</button>
+</li>
+```
+
+## State Management Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Centralized Navigation" icon="compass">
+    Use Pinia stores for global UI state like breadcrumbs
+  </Card>
+  <Card title="Local Data State" icon="database">
+    Keep CRUD data in component-local refs for simplicity
+  </Card>
+  <Card title="Service Layer" icon="layer-group">
+    Encapsulate API calls in service modules
+  </Card>
+  <Card title="Persistent Auth" icon="lock">
+    Use localStorage for authentication that survives refreshes
+  </Card>
+</CardGroup>
+
+## When to Use Pinia vs Local State
+
+<Tabs>
+  <Tab title="Use Pinia When">
+    - State needs to be shared across multiple unrelated components
+    - State needs to persist across route changes
+    - Complex state with multiple actions and getters
+    - DevTools debugging is important
+
+    **Examples:**
+    - Breadcrumb navigation state
+    - Global notification queue
+    - User preferences and settings
+    - Application-wide filters
+  </Tab>
+  <Tab title="Use Local State When">
+    - State is only used within a single component tree
+    - Data is fetched fresh on component mount
+    - Simple CRUD operations
+    - Modal visibility and UI state
+
+    **Examples:**
+    - Product list in Productos view
+    - Form input values
+    - Pagination state
+    - Modal open/closed state
+  </Tab>
+</Tabs>
+
+## State Access Patterns
+
+### Using storeToRefs
+
+Extract reactive references from stores:
+
+```javascript
+import { storeToRefs } from 'pinia';
+import { useBreadCrumbsStore } from '../store/breadCrumbs.js';
+
+const breadCrumbsStore = useBreadCrumbsStore();
+const { breadCrumbs } = storeToRefs(breadCrumbsStore);
+// breadCrumbs is now a reactive ref
+```
+
+<Note>
+  Always use `storeToRefs()` when destructuring state to maintain reactivity. Direct destructuring will lose reactivity.
+</Note>
+
+### Direct Store Access
+
+Call actions directly on the store instance:
+
+```javascript
+const breadCrumbsStore = useBreadCrumbsStore();
+breadCrumbsStore.setBreadCrumbs([
+  { nombre: 'Productos', ruta: '/productos' }
+]);
+```
+
+## Future Store Expansion
+
+The current architecture can be extended with additional Pinia stores:
+
+<CodeGroup>
+```javascript User Store
+import { defineStore } from 'pinia';
+
+export const useUserStore = defineStore('user', {
+  state: () => ({
+    currentUser: null,
+    isAuthenticated: false,
+  }),
+  getters: {
+    isAdmin: (state) => state.currentUser?.rol === 'Administrador',
+  },
+  actions: {
+    setUser(user) {
+      this.currentUser = user;
+      this.isAuthenticated = true;
+      localStorage.setItem('usuario', JSON.stringify(user));
+    },
+    logout() {
+      this.currentUser = null;
+      this.isAuthenticated = false;
+      localStorage.removeItem('usuario');
+    }
+  }
+});
+```
+
+```javascript Products Store
+import { defineStore } from 'pinia';
+import productoService from '../services/productos.service';
+
+export const useProductsStore = defineStore('products', {
+  state: () => ({
+    products: [],
+    loading: false,
+    error: null,
+  }),
+  getters: {
+    productCount: (state) => state.products.length,
+    lowStockProducts: (state) => state.products.filter(p => p.stock < 10),
+  },
+  actions: {
+    async fetchProducts() {
+      this.loading = true;
+      try {
+        this.products = await productoService.listar();
+      } catch (error) {
+        this.error = error.message;
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
+});
+```
+</CodeGroup>
+
+## Summary
+
+The Sistema de Productos uses a **hybrid state management approach**:
+
+- **Pinia** for global UI state (breadcrumbs, potentially user session)
+- **localStorage** for persistent authentication data
+- **Component-local refs** for page-specific data and UI state
+- **Service layer** for API communication and data fetching
+- **Provide/Inject** for cross-cutting concerns like notifications
+
+This approach balances simplicity with scalability, keeping the codebase maintainable while allowing for future expansion.

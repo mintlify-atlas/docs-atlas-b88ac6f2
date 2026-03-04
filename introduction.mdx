@@ -1,0 +1,143 @@
+---
+title: Introduction
+description: Sistema de Productos - A full-stack product management system built with Vue.js and Express
+---
+
+# Introduction to Sistema de Productos
+
+Sistema de Productos is a full-stack web application for managing products, categories, and users. Built as a practice project to explore modern web development technologies, it demonstrates the integration between Vue.js on the frontend and Express on the backend.
+
+## What is Sistema de Productos?
+
+This system provides a complete solution for product management with the following capabilities:
+
+- **Product Management**: Create, read, update, and delete products with detailed information including price, stock, and descriptions
+- **Category Organization**: Organize products into customizable categories with icons and colors
+- **User Management**: Role-based user system with authentication and authorization
+- **RESTful API**: Well-structured backend API with JWT-based authentication
+
+<Note>
+  This project is designed as a learning exercise and practice application. The codebase is actively maintained and subject to ongoing improvements and refactoring.
+</Note>
+
+## Technology Stack
+
+Sistema de Productos leverages modern JavaScript technologies across the full stack:
+
+### Frontend
+- **Vue.js 3.5.18**: Progressive JavaScript framework for building user interfaces
+- **Vue Router 4.5.1**: Official routing library for Vue.js single-page applications
+- **Pinia 3.0.3**: Intuitive state management for Vue
+- **Tailwind CSS 4.1.11**: Utility-first CSS framework for rapid UI development
+- **Vite 7.1.0**: Next-generation frontend build tool
+
+### Backend
+- **Express 5.1.0**: Fast, unopinionated web framework for Node.js
+- **PostgreSQL**: Robust relational database with pg driver (8.16.3)
+- **JWT (jsonwebtoken 9.0.2)**: Secure authentication with JSON Web Tokens
+- **bcrypt 6.0.0**: Password hashing for secure credential storage
+
+### Development Tools
+- **Nodemon**: Automatic server restart during development
+- **Concurrently**: Run frontend and backend simultaneously
+- **dotenv**: Environment variable management
+
+## Key Features
+
+### Secure Authentication
+
+The application implements JWT-based authentication with HTTP-only cookies, providing secure session management:
+
+```javascript
+import jwt from 'jsonwebtoken';
+import 'dotenv/config';
+
+export async function auntenticarToken(req, res, next) {
+  const token = req.cookies.token;
+  if(!token) {
+    return respuestaError(req, res, 401, 'Acceso no autorizado.');
+  }
+  // Token verification logic...
+}
+```
+
+### RESTful API Architecture
+
+The backend follows REST principles with organized routes:
+
+```javascript
+// API endpoints structure
+router.use('/categorias', CategoriasRoutes);
+router.use('/productos', ProductosRoutes);
+router.use('/usuarios', UsuariosRoutes);
+```
+
+All API endpoints are accessible under the `/api-productos` base path.
+
+### Database Integration
+
+PostgreSQL integration with connection pooling for optimal performance:
+
+```javascript
+const pool = new Pool({
+  user: process.env.PG_USER || 'postgres',
+  host: process.env.PG_HOST || 'localhost',
+  database: process.env.PG_DATABASE || 'ejercicio_productos',
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT || 5432,
+});
+```
+
+### Role-Based Access Control
+
+Two user roles are supported:
+- **Administrator**: Full access to all features including user management
+- **Regular User**: Limited access based on permissions
+
+<Warning>
+  The default administrator account is created during database setup. Make sure to change the default password in production environments.
+</Warning>
+
+## Project Structure
+
+The application is organized into clear, modular directories:
+
+```
+proyecto/
+├── server/                 # Backend application
+│   ├── config/            # Database and configuration
+│   ├── controllers/       # Request handlers
+│   ├── models/            # Data models
+│   ├── routes/            # API routes
+│   ├── middlewares/       # Authentication middleware
+│   ├── helpers/           # Utility functions
+│   ├── app.js            # Express app configuration
+│   └── index.js          # Server entry point
+├── src/                   # Frontend application
+│   ├── components/        # Vue components
+│   ├── views/            # Page views
+│   ├── router/           # Vue Router configuration
+│   ├── services/         # API service layer
+│   ├── store/            # Pinia stores
+│   └── main.js           # Vue app entry point
+└── package.json          # Dependencies and scripts
+```
+
+## Use Cases
+
+Sistema de Productos is ideal for:
+
+- Learning full-stack JavaScript development
+- Understanding Vue.js and Express integration
+- Practicing RESTful API design
+- Exploring JWT authentication patterns
+- Building product catalog applications
+- Educational purposes and coding exercises
+
+## What's Next?
+
+Ready to get started? Continue to the [Quickstart Guide](/quickstart) to run the application in minutes, or check out the [Installation Guide](/installation) for detailed setup instructions.
+
+<Accordion title="About the Author">
+  Sistema de Productos was created by **Luis Reinaldo Cortesía Henríquez** as a personal learning project. While this is primarily an educational project, suggestions for improvements and best practices are welcome!
+</Accordion>

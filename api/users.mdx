@@ -1,0 +1,537 @@
+---
+title: 'Users'
+description: 'User management endpoints (Administrator only)'
+---
+
+All user management endpoints require authentication AND the Administrator role.
+
+## List Users
+
+<api method="GET" endpoint="/api-productos/usuarios">
+Retrieve a list of all users.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Administrador
+
+### Request Parameters
+
+No parameters required.
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  Empty string
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of user objects
+  
+  <Expandable title="user object">
+    <ResponseField name="id" type="number">
+      User ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Username
+    </ResponseField>
+    
+    <ResponseField name="correo" type="string">
+      Email address
+    </ResponseField>
+    
+    <ResponseField name="rol" type="string">
+      User role ("Usuario" or "Administrador")
+    </ResponseField>
+    
+    <ResponseField name="creado" type="string">
+      Creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="actualizado" type="string">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET http://localhost:3000/api-productos/usuarios \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "",
+  "data": [
+    {
+      "id": 1,
+      "nombre": "admin",
+      "correo": "admin@example.com",
+      "rol": "Administrador",
+      "creado": "2026-01-01T00:00:00.000Z",
+      "actualizado": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "nombre": "usuario1",
+      "correo": "user1@example.com",
+      "rol": "Usuario",
+      "creado": "2026-01-05T10:30:00.000Z",
+      "actualizado": "2026-01-05T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  User does not have Administrator role
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al listar los usuarios.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Create User
+
+<api method="POST" endpoint="/api-productos/usuarios">
+Create a new user account.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Administrador
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Username (must be unique)
+</ParamField>
+
+<ParamField body="contrasena" type="string" required>
+  User password (will be hashed with bcrypt)
+</ParamField>
+
+<ParamField body="correo" type="string" required>
+  Email address
+</ParamField>
+
+<ParamField body="rol" type="string" required>
+  User role: "Usuario" or "Administrador"
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (201)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Usuario registrado exitosamente."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api-productos/usuarios \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "nombre": "usuario1",
+    "contrasena": "SecurePass123",
+    "correo": "user1@example.com",
+    "rol": "Usuario"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 201,
+  "mensaje": "Usuario registrado exitosamente.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  User does not have Administrator role
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error or duplicate username/email
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al registrar el usuario.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Get User by ID
+
+<api method="GET" endpoint="/api-productos/usuarios/:id">
+Retrieve a single user by ID.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Administrador
+
+### Path Parameters
+
+<ParamField path="id" type="number" required>
+  User ID
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  Empty string
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  User object with same structure as list endpoint (password field excluded)
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET http://localhost:3000/api-productos/usuarios/1 \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "",
+  "data": {
+    "id": 1,
+    "nombre": "admin",
+    "correo": "admin@example.com",
+    "rol": "Administrador",
+    "creado": "2026-01-01T00:00:00.000Z",
+    "actualizado": "2026-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  User not found
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 400,
+    "mensaje": "Credenciales incorrectas.",
+    "detalles": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  User does not have Administrator role
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al leer el usuario.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Update User
+
+<api method="PUT" endpoint="/api-productos/usuarios/:id">
+Update an existing user account.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Administrador
+
+### Path Parameters
+
+<ParamField path="id" type="number" required>
+  User ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Username
+</ParamField>
+
+<ParamField body="contrasena" type="string" required>
+  User password (will be hashed with bcrypt)
+</ParamField>
+
+<ParamField body="correo" type="string" required>
+  Email address
+</ParamField>
+
+<ParamField body="rol" type="string" required>
+  User role: "Usuario" or "Administrador"
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Usuario actualizado exitosamente."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X PUT http://localhost:3000/api-productos/usuarios/2 \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "nombre": "usuario1_updated",
+    "contrasena": "NewSecurePass456",
+    "correo": "user1_new@example.com",
+    "rol": "Administrador"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Usuario actualizado exitosamente.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  User not found
+  
+  ```json
+  {
+    "ok": true,
+    "statusCode": 400,
+    "mensaje": "Usuario no encontrado.",
+    "data": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  User does not have Administrator role
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al actualizar el usuario.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+---
+
+## Delete User
+
+<api method="DELETE" endpoint="/api-productos/usuarios/:id">
+Delete a user account by ID.
+</api>
+
+### Authentication
+
+**Required**: JWT token via cookie  
+**Role**: Administrador
+
+### Path Parameters
+
+<ParamField path="id" type="number" required>
+  User ID
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Success indicator
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code (200)
+</ResponseField>
+
+<ResponseField name="mensaje" type="string">
+  "Usuario eliminado exitosamente."
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  No data returned
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X DELETE http://localhost:3000/api-productos/usuarios/2 \
+  -b cookies.txt
+```
+
+### Example Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "mensaje": "Usuario eliminado exitosamente.",
+  "data": null
+}
+```
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  User not found
+  
+  ```json
+  {
+    "ok": true,
+    "statusCode": 400,
+    "mensaje": "Usuario no encontrado.",
+    "data": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  User does not have Administrator role
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error
+  
+  ```json
+  {
+    "ok": false,
+    "statusCode": 500,
+    "mensaje": "Error al eliminar el usuario.",
+    "detalles": "Error message"
+  }
+  ```
+</ResponseField>
+
+## Notes
+
+- All user management endpoints require Administrator role
+- Passwords are hashed using bcrypt with 10 salt rounds before storage
+- Password hashes are never returned in API responses
+- All timestamps are automatically managed by the database
+- The `creado` field is set to `CURRENT_TIMESTAMP` on creation
+- The `actualizado` field is updated to `CURRENT_TIMESTAMP` on every update
+- User data is retrieved from the `UsuariosView` database view
+- Users are returned ordered by name alphabetically
+- Username and email must be unique in the system

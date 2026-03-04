@@ -1,0 +1,258 @@
+---
+title: 'Frontend Overview'
+description: 'Vue.js 3 frontend architecture and project structure'
+---
+
+## Introduction
+
+The Sistema de Productos frontend is built with **Vue 3** using the Composition API and **Vite** as the build tool. The application provides a modern, responsive interface for managing products, categories, and users with real-time authentication.
+
+## Tech Stack
+
+<CardGroup cols={2}>
+  <Card title="Vue 3" icon="vuejs">
+    Progressive JavaScript framework with Composition API
+  </Card>
+  <Card title="Vite" icon="bolt">
+    Fast build tool and development server
+  </Card>
+  <Card title="Pinia" icon="store">
+    State management for Vue applications
+  </Card>
+  <Card title="Tailwind CSS" icon="paintbrush">
+    Utility-first CSS framework (v4.1)
+  </Card>
+</CardGroup>
+
+## Project Setup
+
+### Entry Point
+
+The application is initialized in `src/main.js:1`:
+
+```javascript src/main.js
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
+import router from './router';
+import './style.css';
+
+const app = createApp(App);
+const pinia = createPinia();
+
+app.use(pinia);
+app.use(router);
+
+app.mount('#app');
+```
+
+### Vite Configuration
+
+The project uses Vite with Vue and Tailwind CSS plugins:
+
+```javascript vite.config.js
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    tailwindcss(),
+  ],
+});
+```
+
+## Project Structure
+
+<Accordion title="Directory Organization">
+  The source code follows a clear separation of concerns:
+
+  ```
+  src/
+  ├── components/          # Reusable Vue components
+  │   ├── Categorias/      # Category-specific components
+  │   ├── Productos/       # Product-specific components
+  │   ├── Usuarios/        # User-specific components
+  │   ├── Header.vue       # Navigation header
+  │   ├── Sidebar.vue      # Side navigation
+  │   ├── Tabla.vue        # Reusable table component
+  │   └── ...
+  ├── views/               # Page-level components
+  │   ├── Inicio.vue
+  │   ├── Productos.vue
+  │   ├── Categorias.vue
+  │   └── Usuarios.vue
+  ├── layouts/             # Layout wrappers
+  │   ├── MainLayout.vue
+  │   └── LoginLayout.vue
+  ├── router/              # Vue Router configuration
+  │   └── index.js
+  ├── store/               # Pinia stores
+  │   └── breadCrumbs.js
+  ├── services/            # API service layer
+  │   ├── productos.service.js
+  │   ├── categorias.service.js
+  │   └── usuarios.service.js
+  ├── api/                 # Axios configuration
+  ├── utils/               # Utility functions
+  ├── assets/              # Static assets
+  ├── App.vue              # Root component
+  ├── main.js              # Application entry
+  └── style.css            # Global styles
+  ```
+</Accordion>
+
+## Application Architecture
+
+### Layout System
+
+The application uses two main layouts:
+
+<Tabs>
+  <Tab title="MainLayout">
+    Used for authenticated pages with sidebar and header navigation.
+
+    ```vue src/layouts/MainLayout.vue
+    <template>
+      <div class="flex w-dvw h-dvh bg-slate-50 bg-[radial-gradient(circle_2px,var(--color-indigo-100)_100%,transparent_0)] bg-size-[30px_30px]">
+        <Sidebar :sidebarOculto="sidebarOculto" :sidebarMinimizado="sidebarMinimizado" @ocultar-sidebar="ocultarSidebar" />
+        <div class="flex flex-col w-full h-full">
+          <Header @ocultar-sidebar="ocultarSidebar" @minimizar-sidebar="minimizarSidebar" />
+          <main class="flex flex-col p-4 overflow-auto">
+            <router-view />
+          </main>
+        </div>
+      </div>
+    </template>
+    ```
+  </Tab>
+  <Tab title="LoginLayout">
+    Used for authentication pages without navigation.
+  </Tab>
+</Tabs>
+
+### Root Component
+
+The `App.vue:1` serves as a simple router outlet:
+
+```vue src/App.vue
+<template>
+  <router-view />
+</template>
+
+<script setup></script>
+```
+
+## Styling
+
+### Tailwind CSS Integration
+
+The project uses **Tailwind CSS v4** with the Vite plugin. Global styles are defined in `src/style.css:1`:
+
+```css src/style.css
+@import 'tailwindcss';
+
+body {
+  font-family: 'Poppins';
+  font-size: 16px;
+  color: var(--color-slate-600);
+}
+```
+
+<Note>
+  The application uses the **Poppins** font family loaded from local font files with multiple weights (400, 500, 600, 700, 800) and italic variants.
+</Note>
+
+### Custom Transitions
+
+The application includes custom CSS transitions for:
+
+<CodeGroup>
+```css Notifications
+.notificacion-enter-active,
+.notificacion-leave-active {
+  transition: all 0.3s ease;
+}
+
+.notificacion-enter-from,
+.notificacion-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+```
+
+```css Modals
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+```
+
+```css Router Links
+.router-link--active {
+  border: 1px solid var(--color-indigo-300);
+  background-color: var(--color-indigo-100);
+  color: var(--color-indigo-500);
+}
+```
+</CodeGroup>
+
+## Development Scripts
+
+```json package.json
+{
+  "scripts": {
+    "dev:frontend": "vite --host",
+    "dev:backend": "nodemon server/index.js",
+    "dev": "concurrently 'npm:dev:frontend' 'npm:dev:backend'",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
+```
+
+<Accordion title="Running the Application">
+  **Development Mode:**
+  ```bash
+  npm run dev
+  ```
+  This runs both frontend and backend concurrently.
+
+  **Frontend Only:**
+  ```bash
+  npm run dev:frontend
+  ```
+
+  **Production Build:**
+  ```bash
+  npm run build
+  ```
+</Accordion>
+
+## Key Features
+
+- **Responsive Design**: Mobile-first approach with collapsible sidebar
+- **Authentication**: JWT-based authentication with protected routes
+- **Real-time Notifications**: Toast notifications for user feedback
+- **Component Reusability**: Shared components for tables, modals, and forms
+- **Type Safety**: Props validation and event emitters
+- **State Management**: Centralized state with Pinia
+- **API Integration**: Axios-based service layer for backend communication
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="cube" href="./components">
+    Explore the component library
+  </Card>
+  <Card title="State Management" icon="database" href="./state-management">
+    Learn about Pinia stores
+  </Card>
+</CardGroup>
